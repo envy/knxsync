@@ -1,0 +1,8 @@
+{
+    "domain": "knxsync",
+    "name": "KNX Sync",
+    "documentation": "",
+    "dependencies": [],
+    "codeowners": [],
+    "requirements": []
+}
