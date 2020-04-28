@@ -3,6 +3,6 @@
     "name": "KNX Sync",
     "documentation": "",
     "dependencies": [],
-    "codeowners": [],
-    "requirements": []
+    "codeowners": ["@envy"],
+    "requirements": ["xknx"]
 }
