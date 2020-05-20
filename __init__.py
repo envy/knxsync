@@ -14,15 +14,8 @@ from homeassistant.components.knx import DOMAIN as DOMAIN_KNX, SERVICE_KNX_SEND,
 from homeassistant.components.knx.light import CONF_STATE_ADDRESS, CONF_BRIGHTNESS_ADDRESS, CONF_BRIGHTNESS_STATE_ADDRESS, CONF_COLOR_ADDRESS, CONF_COLOR_STATE_ADDRESS
 import homeassistant.helpers.config_validation as cv
 
-try:
-    from xknx.knx.dpt_2byte_float import DPT2ByteFloat
-except:
-    from xknx.knx.dpt_float import DPT2ByteFloat
-
-try:
-    from xknx.knx.dpt_2byte_signed import DPT2ByteSigned
-except:
-    from xknx.knx.dpt_2byte import DPT2ByteUnsigned as DPT2ByteSigned
+from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
+from xknx.dpt.dpt_2byte_signed import DPT2ByteSigned
 
 VERSION = '0.0.1'
 
