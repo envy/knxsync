@@ -11,7 +11,8 @@ from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITIES, CONF_ENTITY_ID, C
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT, ATTR_RGB_COLOR, ATTR_BRIGHTNESS
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
 from homeassistant.components.knx import DOMAIN as DOMAIN_KNX, SERVICE_KNX_SEND, SERVICE_KNX_ATTR_ADDRESS, SERVICE_KNX_ATTR_PAYLOAD 
-from homeassistant.components.knx.light import CONF_STATE_ADDRESS, CONF_BRIGHTNESS_ADDRESS, CONF_BRIGHTNESS_STATE_ADDRESS, CONF_COLOR_ADDRESS, CONF_COLOR_STATE_ADDRESS
+from homeassistant.components.knx.const import CONF_STATE_ADDRESS
+from homeassistant.components.knx.schema import LightSchema
 import homeassistant.helpers.config_validation as cv
 
 from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
@@ -31,10 +32,10 @@ CONFIG_SCHEMA = vol.Schema({
             vol.Required(CONF_ENTITY_ID): cv.string,
             vol.Optional(CONF_ADDRESS) : cv.string,
             vol.Optional(CONF_STATE_ADDRESS): cv.string,
-            vol.Optional(CONF_BRIGHTNESS_ADDRESS) : cv.string,
-            vol.Optional(CONF_BRIGHTNESS_STATE_ADDRESS): cv.string,
-            vol.Optional(CONF_COLOR_ADDRESS) : cv.string,
-            vol.Optional(CONF_COLOR_STATE_ADDRESS): cv.string
+            vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS) : cv.string,
+            vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS): cv.string,
+            vol.Optional(LightSchema.CONF_COLOR_ADDRESS) : cv.string,
+            vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS): cv.string
         }, extra=vol.ALLOW_EXTRA)])
     })
 }, extra=vol.ALLOW_EXTRA)
@@ -90,21 +91,21 @@ class KNXSyncer:
                     _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_STATE_ADDRESS]))
                     self.entity_map[domain]['senders_onoff'][other_id] = entity[CONF_STATE_ADDRESS]
 
-                if CONF_BRIGHTNESS_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering receiver {} -> {}".format(entity[CONF_BRIGHTNESS_ADDRESS], other_id))
-                    self.entity_map[domain]['receivers_brightness'][entity[CONF_BRIGHTNESS_ADDRESS]] = other_id
+                if LightSchema.CONF_BRIGHTNESS_ADDRESS in entity.keys():
+                    _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_BRIGHTNESS_ADDRESS], other_id))
+                    self.entity_map[domain]['receivers_brightness'][entity[LightSchema.CONF_BRIGHTNESS_ADDRESS]] = other_id
 
-                if CONF_BRIGHTNESS_STATE_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_BRIGHTNESS_STATE_ADDRESS]))
-                    self.entity_map[domain]['senders_brightness'][other_id] = entity[CONF_BRIGHTNESS_STATE_ADDRESS]
+                if LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS in entity.keys():
+                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]))
+                    self.entity_map[domain]['senders_brightness'][other_id] = entity[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]
 
-                if CONF_COLOR_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering receiver {} -> {}".format(entity[CONF_COLOR_ADDRESS], other_id))
-                    self.entity_map[domain]['receivers_color'][entity[CONF_COLOR_ADDRESS]] = other_id
+                if LightSchema.CONF_COLOR_ADDRESS in entity.keys():
+                    _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_COLOR_ADDRESS], other_id))
+                    self.entity_map[domain]['receivers_color'][entity[LightSchema.CONF_COLOR_ADDRESS]] = other_id
 
-                if CONF_COLOR_STATE_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_COLOR_STATE_ADDRESS]))
-                    self.entity_map[domain]['senders_color'][other_id] = entity[CONF_COLOR_STATE_ADDRESS]
+                if LightSchema.CONF_COLOR_STATE_ADDRESS in entity.keys():
+                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[LightSchema.CONF_COLOR_STATE_ADDRESS]))
+                    self.entity_map[domain]['senders_color'][other_id] = entity[LightSchema.CONF_COLOR_STATE_ADDRESS]
             elif domain == DOMAIN_SENSOR:
                 if CONF_STATE_ADDRESS in entity.keys():
                     _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_STATE_ADDRESS]))
