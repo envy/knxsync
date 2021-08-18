@@ -1,6 +1,7 @@
 {
     "domain": "knxsync",
-    "name": "KNX Sync",
+    "name": "KNXSync",
+    "config_flow": true,
     "version": "0.0.1",
     "documentation": "",
     "dependencies": [],

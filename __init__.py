@@ -5,8 +5,15 @@ For more details about this component, please refer to the documentation at
 https://github.com/envy/knxsync
 """
 import logging
+import asyncio
 
 import voluptuous as vol
+
+from .const import DOMAIN
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITIES, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT, ATTR_RGB_COLOR, ATTR_BRIGHTNESS
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
@@ -22,39 +29,32 @@ VERSION = '0.0.1'
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_KNXSYNC = 'data_knxsync'
+#DATA_KNXSYNC = 'data_knxsync'
 
-DOMAIN = 'knxsync'
+#async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+#    """Set up this component."""
+#    _LOGGER.info('If you have ANY issues with knxsync, please report them here:'
+#                 ' https://github.com/envy/knxsync')
+#
+#    _LOGGER.debug('KNXSync Version %s', VERSION)
+#
+#    hass.data.setdefault(DOMAIN, {})
+#
+#    #hass.data[DATA_KNXSYNC] = KNXSyncer(hass, config)
+#    return True
 
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Required(CONF_ENTITIES): vol.All(cv.ensure_list, [vol.Schema({
-            vol.Required(CONF_ENTITY_ID): cv.string,
-            vol.Optional(CONF_ADDRESS) : cv.string,
-            vol.Optional(CONF_STATE_ADDRESS): cv.string,
-            vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS) : cv.string,
-            vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS): cv.string,
-            vol.Optional(LightSchema.CONF_COLOR_ADDRESS) : cv.string,
-            vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS): cv.string
-        }, extra=vol.ALLOW_EXTRA)])
-    })
-}, extra=vol.ALLOW_EXTRA)
-
-
-async def async_setup(hass, config):
-    """Set up this component."""
-    _LOGGER.info('If you have ANY issues with knxsync, please report them here:'
-                 ' https://github.com/envy/knxsync')
-
-    _LOGGER.debug('KNXSync Version %s', VERSION)
-
-    hass.data[DATA_KNXSYNC] = KNXSyncer(hass, config)
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    hass.data[DOMAIN][entry.entry_id] = KNXSyncer(hass, entry.data)
     return True
 
-def get_domain(eid: str):
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    hass.data[DOMAIN].pop(entry.entry_id)
+    return True
+
+def get_domain(eid: str) -> str:
     return eid.split('.')[0]
 
-def get_id(eid: str):
+def get_id(eid: str) -> str:
     return eid.split('.')[1]
 
 class KNXSyncer:
