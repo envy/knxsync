@@ -10,8 +10,8 @@ import voluptuous as vol
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITIES, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT, ATTR_RGB_COLOR, ATTR_BRIGHTNESS
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
-from homeassistant.components.knx import DOMAIN as DOMAIN_KNX, SERVICE_KNX_SEND, SERVICE_KNX_ATTR_ADDRESS, SERVICE_KNX_ATTR_PAYLOAD 
-from homeassistant.components.knx.const import CONF_STATE_ADDRESS
+from homeassistant.components.knx import DOMAIN as DOMAIN_KNX, SERVICE_KNX_SEND, SERVICE_KNX_ATTR_PAYLOAD 
+from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
 import homeassistant.helpers.config_validation as cv
 
@@ -131,21 +131,21 @@ class KNXSyncer:
                 else:
                     _LOGGER.debug("Sending {} off -> {}".format(other_id, address))
                     payload = 0
-                await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { SERVICE_KNX_ATTR_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
+                await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
 
             if other_id in self.entity_map[domain]['senders_color'].keys() and ATTR_RGB_COLOR in state.attributes.keys():
                 address = self.entity_map[domain]['senders_color'][other_id]
                 rgb = state.attributes[ATTR_RGB_COLOR]
                 payload = list(rgb)
                 _LOGGER.debug("Sending {} color -> {}".format(other_id, address))
-                await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { SERVICE_KNX_ATTR_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
+                await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
 
             if other_id in self.entity_map[domain]['senders_brightness'].keys() and ATTR_BRIGHTNESS in state.attributes.keys():
                 address = self.entity_map[domain]['senders_brightness'][other_id]
                 brightness = state.attributes[ATTR_BRIGHTNESS]
                 payload = [brightness] # XKNX requires a list for 1 byte payload
                 _LOGGER.debug("Sending {} brightness -> {}".format(other_id, address))
-                await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { SERVICE_KNX_ATTR_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
+                await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
         elif domain == DOMAIN_SENSOR:
             if other_id in self.entity_map[domain]['senders_value'].keys():
                 address = self.entity_map[domain]['senders_value'][other_id]
@@ -154,12 +154,12 @@ class KNXSyncer:
                 try:
                     value = int(value)
                     payload = list(DPT2ByteSigned.to_knx(value))
-                    await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { SERVICE_KNX_ATTR_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
+                    await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
                 except ValueError:
                     try:
                         value = float(value)
                         payload = list(DPT2ByteFloat.to_knx(value))
-                        await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { SERVICE_KNX_ATTR_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
+                        await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
                     except ValueError:
                         # Value is neither int nor float
                         return
@@ -167,7 +167,7 @@ class KNXSyncer:
 
     async def got_telegram(self, event):
         data = event.data
-        address = data['address']
+        address = data['destination']
         if address in self.entity_map[DOMAIN_LIGHT]['receivers_onoff'].keys():
             other_id = self.entity_map[DOMAIN_LIGHT]['receivers_onoff'][address]
             payload = data['data']

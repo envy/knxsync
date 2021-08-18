@@ -1,6 +1,7 @@
 {
     "domain": "knxsync",
     "name": "KNX Sync",
+    "version": "0.0.1",
     "documentation": "",
     "dependencies": [],
     "codeowners": ["@envy"],
