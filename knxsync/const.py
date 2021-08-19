@@ -1,1 +1,1 @@
-DOMAIN = 'knysync'
+DOMAIN = 'knxsync'

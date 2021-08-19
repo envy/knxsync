@@ -10,8 +10,9 @@ import asyncio
 import voluptuous as vol
 
 from .const import DOMAIN
+from .helpers import get_domain, get_id
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITIES, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
@@ -29,36 +30,17 @@ VERSION = '0.0.1'
 
 _LOGGER = logging.getLogger(__name__)
 
-#DATA_KNXSYNC = 'data_knxsync'
-
-#async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-#    """Set up this component."""
-#    _LOGGER.info('If you have ANY issues with knxsync, please report them here:'
-#                 ' https://github.com/envy/knxsync')
-#
-#    _LOGGER.debug('KNXSync Version %s', VERSION)
-#
-#    hass.data.setdefault(DOMAIN, {})
-#
-#    #hass.data[DATA_KNXSYNC] = KNXSyncer(hass, config)
-#    return True
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hass.data[DOMAIN][entry.entry_id] = KNXSyncer(hass, entry.data)
+async def async_setup_entry(hass: HomeAssistant, entry: config_entries.ConfigEntry) -> bool:
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = KNXSyncer(hass, entry)
     return True
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: config_entries.ConfigEntry) -> bool:
     hass.data[DOMAIN].pop(entry.entry_id)
     return True
 
-def get_domain(eid: str) -> str:
-    return eid.split('.')[0]
-
-def get_id(eid: str) -> str:
-    return eid.split('.')[1]
-
 class KNXSyncer:
-    def __init__(self, hass, config):
+    def __init__(self, hass, config_entry: config_entries.ConfigEntry):
         self.entity_map = {
             DOMAIN_LIGHT: {
                 'receivers_onoff': {},
@@ -74,46 +56,46 @@ class KNXSyncer:
         }
         self.hass = hass
 
-        entities = config[DOMAIN][CONF_ENTITIES]
-        _LOGGER.debug("entities: {}".format(entities))
+        entity = config_entry.data
 
-        for entity in entities:
-            other_id = entity[CONF_ENTITY_ID]
-            domain = get_domain(other_id)
-            _LOGGER.debug("syncing {} to KNX".format(other_id))
+        other_id = entity[CONF_ENTITY_ID]
+        domain = get_domain(other_id)
+        _LOGGER.debug("syncing {} to KNX".format(other_id))
 
-            if domain == DOMAIN_LIGHT:
-                if CONF_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering receiver {} -> {}".format(entity[CONF_ADDRESS], other_id))
-                    self.entity_map[domain]['receivers_onoff'][entity[CONF_ADDRESS]] = other_id
+        if domain == DOMAIN_LIGHT:
+            if CONF_ADDRESS in entity.keys():
+                _LOGGER.debug("registering receiver {} -> {}".format(entity[CONF_ADDRESS], other_id))
+                self.entity_map[domain]['receivers_onoff'][entity[CONF_ADDRESS]] = other_id
 
-                if CONF_STATE_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_STATE_ADDRESS]))
-                    self.entity_map[domain]['senders_onoff'][other_id] = entity[CONF_STATE_ADDRESS]
+            if CONF_STATE_ADDRESS in entity.keys():
+                _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_STATE_ADDRESS]))
+                self.entity_map[domain]['senders_onoff'][other_id] = entity[CONF_STATE_ADDRESS]
 
-                if LightSchema.CONF_BRIGHTNESS_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_BRIGHTNESS_ADDRESS], other_id))
-                    self.entity_map[domain]['receivers_brightness'][entity[LightSchema.CONF_BRIGHTNESS_ADDRESS]] = other_id
+            if LightSchema.CONF_BRIGHTNESS_ADDRESS in entity.keys():
+                _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_BRIGHTNESS_ADDRESS], other_id))
+                self.entity_map[domain]['receivers_brightness'][entity[LightSchema.CONF_BRIGHTNESS_ADDRESS]] = other_id
 
-                if LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]))
-                    self.entity_map[domain]['senders_brightness'][other_id] = entity[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]
+            if LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS in entity.keys():
+                _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]))
+                self.entity_map[domain]['senders_brightness'][other_id] = entity[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]
 
-                if LightSchema.CONF_COLOR_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_COLOR_ADDRESS], other_id))
-                    self.entity_map[domain]['receivers_color'][entity[LightSchema.CONF_COLOR_ADDRESS]] = other_id
+            if LightSchema.CONF_COLOR_ADDRESS in entity.keys():
+                _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_COLOR_ADDRESS], other_id))
+                self.entity_map[domain]['receivers_color'][entity[LightSchema.CONF_COLOR_ADDRESS]] = other_id
 
-                if LightSchema.CONF_COLOR_STATE_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[LightSchema.CONF_COLOR_STATE_ADDRESS]))
-                    self.entity_map[domain]['senders_color'][other_id] = entity[LightSchema.CONF_COLOR_STATE_ADDRESS]
-            elif domain == DOMAIN_SENSOR:
-                if CONF_STATE_ADDRESS in entity.keys():
-                    _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_STATE_ADDRESS]))
-                    self.entity_map[domain]['senders_value'][other_id] = entity[CONF_STATE_ADDRESS]
+            if LightSchema.CONF_COLOR_STATE_ADDRESS in entity.keys():
+                _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[LightSchema.CONF_COLOR_STATE_ADDRESS]))
+                self.entity_map[domain]['senders_color'][other_id] = entity[LightSchema.CONF_COLOR_STATE_ADDRESS]
+        elif domain == DOMAIN_SENSOR:
+            if CONF_STATE_ADDRESS in entity.keys():
+                _LOGGER.debug("registering sender {} -> {}".format(other_id, entity[CONF_STATE_ADDRESS]))
+                self.entity_map[domain]['senders_value'][other_id] = entity[CONF_STATE_ADDRESS]
 
-        hass.bus.async_listen('knx_event', self.got_telegram)
-        hass.bus.async_listen('state_changed', self.state_changed)
-    
+        # async_listen returns a callback for unregistering the listener
+        # We register that callback here to get called when we are unloaded
+        config_entry.async_on_unload(hass.bus.async_listen('knx_event', self.got_telegram))
+        config_entry.async_on_unload(hass.bus.async_listen('state_changed', self.state_changed))
+
     async def state_changed(self, event):
         data = event.data
         other_id = data[ATTR_ENTITY_ID]

@@ -3,17 +3,43 @@
         "step": {
             "init": {
                 "data": {
-                    "name": "[%key:common::config_flow::data::name%]",
-                    "entity_id": "[%key:common::config_flow::data::entity_id%]"
+                    "name": "Name",
+                    "entity_id": "Entity ID"
+                }
+            },
+            "light": {
+                "data": {
+                    "address": "On/Off address",
+                    "state_address": "On/Off state address",
+                    "brightness_address": "Brightness address",
+                    "brightness_state_address": "Brightness state address",
+                    "color_address": "Color address",
+                    "color_state_address": "Color state address"
                 }
             }
         },
         "error": {
-            "invalid_ga": "[%key:common::config_flow::error::invalid_ga%]",
-            "unknown": "[%key:common::config_flow::error::unknown%]"
+            "invalid_ga": "Invalid group address",
+            "unsupported_domain": "This domain is currently unsupported",
+            "unknown": "Unknown error"
         },
         "abort": {
             "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+        }
+    },
+    "options": {
+        "step": {
+            "light": {
+                "data": {
+                    "name": "Name",
+                    "address": "On/Off address",
+                    "state_address": "On/Off state address",
+                    "brightness_address": "Brightness address",
+                    "brightness_state_address": "Brightness state address",
+                    "color_address": "Color address",
+                    "color_state_address": "Color state address"
+                }
+            }
         }
     }
 }
