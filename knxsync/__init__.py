@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITIES, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT, ATTR_RGB_COLOR, ATTR_BRIGHTNESS
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
-from homeassistant.components.knx import DOMAIN as DOMAIN_KNX, SERVICE_KNX_SEND, SERVICE_KNX_ATTR_PAYLOAD 
+from homeassistant.components.knx import DOMAIN as DOMAIN_KNX, SERVICE_KNX_SEND, SERVICE_KNX_ATTR_PAYLOAD, SERVICE_KNX_EVENT_REGISTER
 from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
 import homeassistant.helpers.config_validation as cv
@@ -65,6 +65,7 @@ class KNXSyncer:
         if domain == DOMAIN_LIGHT:
             if CONF_ADDRESS in entity.keys():
                 _LOGGER.debug("registering receiver {} -> {}".format(entity[CONF_ADDRESS], other_id))
+                asyncio.run_coroutine_threadsafe(hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, { KNX_ADDRESS: entity[CONF_ADDRESS]}), hass.loop)
                 self.entity_map[domain]['receivers_onoff'][entity[CONF_ADDRESS]] = other_id
 
             if CONF_STATE_ADDRESS in entity.keys():
@@ -73,6 +74,7 @@ class KNXSyncer:
 
             if LightSchema.CONF_BRIGHTNESS_ADDRESS in entity.keys():
                 _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_BRIGHTNESS_ADDRESS], other_id))
+                asyncio.run_coroutine_threadsafe(hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, { KNX_ADDRESS: entity[LightSchema.CONF_BRIGHTNESS_ADDRESS]}), hass.loop)
                 self.entity_map[domain]['receivers_brightness'][entity[LightSchema.CONF_BRIGHTNESS_ADDRESS]] = other_id
 
             if LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS in entity.keys():
@@ -81,6 +83,7 @@ class KNXSyncer:
 
             if LightSchema.CONF_COLOR_ADDRESS in entity.keys():
                 _LOGGER.debug("registering receiver {} -> {}".format(entity[LightSchema.CONF_COLOR_ADDRESS], other_id))
+                asyncio.run_coroutine_threadsafe(hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, { KNX_ADDRESS: entity[LightSchema.CONF_COLOR_ADDRESS]}), hass.loop)
                 self.entity_map[domain]['receivers_color'][entity[LightSchema.CONF_COLOR_ADDRESS]] = other_id
 
             if LightSchema.CONF_COLOR_STATE_ADDRESS in entity.keys():
@@ -105,6 +108,7 @@ class KNXSyncer:
         state = data['new_state']
 
         if domain == DOMAIN_LIGHT:
+            # Also possible via native knx expose
             if other_id in self.entity_map[domain]['senders_onoff'].keys():
                 address = self.entity_map[domain]['senders_onoff'][other_id]
                 if state.state == STATE_ON:
@@ -129,22 +133,8 @@ class KNXSyncer:
                 _LOGGER.debug("Sending {} brightness -> {}".format(other_id, address))
                 await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
         elif domain == DOMAIN_SENSOR:
-            if other_id in self.entity_map[domain]['senders_value'].keys():
-                address = self.entity_map[domain]['senders_value'][other_id]
-                value = state.state
-                # TODO: maybe the datatype should be given in the config...
-                try:
-                    value = int(value)
-                    payload = list(DPT2ByteSigned.to_knx(value))
-                    await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
-                except ValueError:
-                    try:
-                        value = float(value)
-                        payload = list(DPT2ByteFloat.to_knx(value))
-                        await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: address, SERVICE_KNX_ATTR_PAYLOAD: payload})
-                    except ValueError:
-                        # Value is neither int nor float
-                        return
+            # This is already handled by native knx expose
+            pass
 
 
     async def got_telegram(self, event):
