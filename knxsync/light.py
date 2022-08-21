@@ -19,7 +19,7 @@ from xknx.dpt.dpt_2byte_signed import DPT2ByteSigned
 _LOGGER = logging.getLogger(DOMAIN)
 
 class SyncedLight:
-    def __init__(self, hass: HomeAssistant, config_entry: config_entries.ConfigEntry):
+    def __init__(self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict):
         self.address: str | None = None
         self.state_address: str | None = None
         self.brightness_address: str | None = None
@@ -27,8 +27,7 @@ class SyncedLight:
         self.color_address: str | None = None
         self.color_state_address: str | None = None
         self.hass = hass
-        entity_config = config_entry.data
-        self.synced_entity_id = entity_config[CONF_ENTITY_ID]
+        self.synced_entity_id = synced_entity_id
         _LOGGER.debug(f"Setting up synced light '{self.synced_entity_id}'")
 
         if CONF_ADDRESS in entity_config.keys():
