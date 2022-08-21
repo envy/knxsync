@@ -38,26 +38,34 @@ class KNXSyncer:
     def __init__(self, hass: HomeAssistant, config_entry: config_entries.ConfigEntry):
         self.hass = hass
 
+        self.synced_entities = {}
+
         config = config_entry.data
 
-        synced_entity_id = config[CONF_ENTITY_ID]
+        self.synced_entities[config[CONF_ENTITY_ID]] = None
         domain = get_domain(synced_entity_id)
 
         if domain == DOMAIN_LIGHT:
-            self.synced_entity = light.SyncedLight(hass, config_entry)
+            self.synced_entities[config[CONF_ENTITY_ID]] = light.SyncedLight(hass, config_entry)
         else:
             _LOGGER.error(f"Unsupported domain '{domain}'")
-            pass
+            self.synced_entities.pop(config[CONF_ENTITY_ID])
 
     async def got_telegram(self, event):
-        await self.synced_entity.got_telegram(event)
+        for entity_id, syncer in self.synced_entities.items():
+            await syncer.got_telegram(event)
 
     async def state_changed(self, event):
-        await self.synced_entity.state_changed(event)
+        entity_id = data[ATTR_ENTITY_ID]
+        if entity_id not in self.synced_entities.keys():
+            return
+        await self.synced_entities[entity_id].state_changed(event)
 
     async def setup_events(self, config_entry: config_entries.ConfigEntry):
         _LOGGER.debug("Setting up event listeners")
-        await self.synced_entity.setup_events()
+
+        for entity_id, syncer in self.synced_entities.items():
+            await syncer.setup_events()
 
         # async_listen returns a callback for unregistering the listener
         # We register that callback here to get called when we are unloaded
