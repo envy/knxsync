@@ -9,13 +9,14 @@ from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT
 from homeassistant.components.knx.const import DOMAIN as DOMAIN_KNX, CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import entity_registry, selector
 
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
     DOMAIN,
     CONF_KNXSYNC_SYNCED_ENTITIES,
+    CONF_KNXSYNC_BASE_ANSWER_READS,
     CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF,
     KNXSyncEntryData,
     KNXSyncEntityLightData
@@ -137,7 +138,8 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
             step_id="remove",
             data_schema=vol.Schema({
                 vol.Required(CONF_ENTITY_ID): vol.In(synced_entities),
-            })
+            }),
+            last_step=True
         )
 
     async def async_step_edit(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -178,12 +180,14 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="light",
             data_schema=vol.Schema({
-                vol.Optional(CONF_ADDRESS, description={"suggested_value": data.get(CONF_ADDRESS)}): str,
-                vol.Optional(CONF_STATE_ADDRESS, description={"suggested_value": data.get(CONF_STATE_ADDRESS)}): str,
-                vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_ADDRESS)}): str,
-                vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS)}): str,
-                vol.Optional(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF, description={"suggested_value": data.get(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF)}): bool,
-                vol.Optional(LightSchema.CONF_COLOR_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)}): str,
-                vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_STATE_ADDRESS)}): str
-            })
+                vol.Optional(CONF_KNXSYNC_BASE_ANSWER_READS, description={"suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)}): selector.BooleanSelector(),
+                vol.Optional(CONF_ADDRESS, description={"suggested_value": data.get(CONF_ADDRESS)}): selector.TextSelector(),
+                vol.Optional(CONF_STATE_ADDRESS, description={"suggested_value": data.get(CONF_STATE_ADDRESS)}): selector.TextSelector(),
+                vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_ADDRESS)}): selector.TextSelector(),
+                vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS)}): selector.TextSelector(),
+                vol.Optional(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF, description={"suggested_value": data.get(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF)}): selector.BooleanSelector(),
+                vol.Optional(LightSchema.CONF_COLOR_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)}): selector.TextSelector(),
+                vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_STATE_ADDRESS)}): selector.TextSelector()
+            }),
+            last_step=True
         )

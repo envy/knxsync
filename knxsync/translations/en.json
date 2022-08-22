@@ -11,35 +11,40 @@
     "options": {
         "step": {
             "init": {
+                "title": "KNXSync",
+                "description": "Manage KNX synced entities here",
                 "menu_options": {
                     "new": "Add a new entity to sync",
                     "remove": "Remove an entity from sync",
-                    "edit": "Edit addresses of an entity"
+                    "edit": "Edit group addresses of an entity"
                 }
             },
             "new": {
+                "title": "Add new entity",
+                "description": "Select the ID of the entity you want to add to sync.",
                 "data": {
                     "entity_id": "Entity ID"
                 }
             },
             "remove": {
+                "title": "Remove an entity",
+                "description": "Select the ID of the entity you want to remove from sync.",
                 "data": {
                     "entity_id": "Entity ID"
-                },
-                "data_description": {
-                    "entity_id": "Entity ID of the entity you want to remove from sync."
                 }
             },
             "edit": {
+                "title": "Edit group addresses",
+                "description": "Select the ID of the entity you want to group address aassignments for.",
                 "data": {
                     "entity_id": "Entity ID"
                 }
             },
-            
             "light": {
                 "title": "Edit light",
-                "description": "Set group addresses to sync this light with.",
+                "description": "Edit group addresses to sync this light with.",
                 "data": {
+                    "answer_reads": "Answer read requests",
                     "address": "Address",
                     "state_address": "State address",
                     "brightness_address": "Brightness address",
@@ -49,6 +54,7 @@
                     "color_state_address": "Color state address"
                 },
                 "data_description": {
+                    "answer_reads": "Whether to answer GroupValueRead requests to state addresses with the last sent state.",
                     "address": "DPT-1 | Light will be switched on/off.",
                     "state_address": "DPT-1 | Light will report its on/off state.",
                     "brightness_address": "DPT-5 | Light will dim to requested percentage.",

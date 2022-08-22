@@ -46,13 +46,11 @@ class KNXSyncer:
         config = config_entry.data
         _LOGGER.debug(f"Current config: {config}")
         for synced_entity_id, entity_config in config[CONF_KNXSYNC_SYNCED_ENTITIES].items():
-            self.synced_entities[synced_entity_id] = None
             domain = get_domain(synced_entity_id)
             if domain == DOMAIN_LIGHT:
-                self.synced_entities[synced_entity_id] = light.SyncedLight(hass, synced_entity_id, entity_config)
+                self.synced_entities[synced_entity_id] = SyncedLight(hass, synced_entity_id, entity_config)
             else:
                 _LOGGER.error(f"Unsupported domain '{domain}'")
-                self.synced_entities.pop(synced_entity_id)
 
     async def got_telegram(self, event):
         for entity_id, syncer in self.synced_entities.items():
