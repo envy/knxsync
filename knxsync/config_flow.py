@@ -117,8 +117,8 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(CONF_ENTITY_ID): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         include_entities=all_valid_entities
-                        )
-                    ),
+                    )
+                ),
             })
         )
 
