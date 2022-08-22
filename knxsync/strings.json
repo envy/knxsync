@@ -1,15 +1,61 @@
 {
     "config": {
+        "step": {},
+        "error": {
+            "unknown": "[%key:common::config_flow::error::unknown%]"
+        },
+        "abort": {
+            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+        }
+    },
+    "options": {
         "step": {
             "init": {
+                "menu_options": {
+                    "new": "Add a new entity to sync",
+                    "remove": "Remove an entity from sync",
+                    "edit": "Edit addresses of an entity"
+                }
+            },
+            "new": {
                 "data": {
-                    "name": "[%key:common::config_flow::data::name%]",
                     "entity_id": "[%key:common::config_flow::data::entity_id%]"
+                }
+            },
+            "remove": {
+                "data": {
+                    "entity_id": "[%key:common::config_flow::data::entity_id%]"
+                },
+                "data_description": {
+                    "entity_id": "[%key:common::config_flow::data_description::entity_id%]"
+                }
+            },
+            "edit": {
+                "data": {
+                    "entity_id": "[%key:common::config_flow::data::entity_id%]"
+                }
+            },
+            "light": {
+                "data": {
+                    "address": "Address",
+                    "state_address": "State address",
+                    "brightness_address": "Brightness address",
+                    "brightness_state_address": "Brightness state address",
+                    "color_address": "Color address",
+                    "color_state_address": "Color state address"
+                },
+                "data_description": {
+                    "address": "DPT-1 | Light will be switched on/off.",
+                    "state_address": "DPT-1 | Light will report its on/off state.",
+                    "brightness_address": "DPT-5 | Light will dim to requested percentage.",
+                    "brightness_state_address": "DPT-5 | Light will report its dim level.",
+                    "color_address": "DPT-232.600 | Light will set its color.",
+                    "color_state_address": "DPT-232.600 | Light will report its color."
                 }
             }
         },
         "error": {
-            "invalid_ga": "[%key:common::config_flow::error::invalid_ga%]",
+            "invalid_ga": "Invalid group address",
             "unknown": "[%key:common::config_flow::error::unknown%]"
         },
         "abort": {

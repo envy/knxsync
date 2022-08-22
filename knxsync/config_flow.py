@@ -1,11 +1,12 @@
 import logging
+from copy import deepcopy
 from typing import Any
 
 from homeassistant import config_entries, core, exceptions
 from homeassistant.core import callback
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITIES, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT
-from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
+from homeassistant.components.knx.const import DOMAIN as DOMAIN_KNX, CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import entity_registry
@@ -67,55 +68,37 @@ class KNXSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
     current_config: dict
+    general_settings: dict
+    is_new_entity: bool
+    selected_entity_id: str | None
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
+        self.general_settings = {}
+        self.is_new_entity = False
+        self.selected_entity_id = None
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        if user_input is not None:
-            _LOGGER.debug(f"Moving to next step")
-            domain = get_domain(user_input[CONF_ENTITY_ID])
-            if domain == "new":
-                return await self.async_step_new()
-            elif domain == "remove":
-                self.selected_entity_id = user_input[CONF_ENTITY_ID]
-                pass
-            elif domain == DOMAIN_LIGHT:
-                self.selected_entity_id = user_input[CONF_ENTITY_ID]
-                return await self.async_step_light()
-        
         self.current_config = self.config_entry.data
-        _LOGGER.debug(f"Current config: {self.current_config}")
-        synced_entities = list(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES].keys())
-        _LOGGER.debug(f"Already set up entites: {synced_entities}")
-        synced_entities.append("new.entity")
-
-        return self.async_show_form(
+        return self.async_show_menu(
             step_id="init",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_ENTITY_ID, default="new.entity"): vol.In(synced_entities),
-            })
+            menu_options=["new", "remove", "edit"]
         )
 
     async def async_step_new(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
             entity_id = user_input[CONF_ENTITY_ID]
+            self.selected_entity_id = entity_id
+            self.is_new_entity = True
             domain = get_domain(entity_id)
             config = None
             if domain == DOMAIN_LIGHT:
-                config = KNXSyncEntityLightData()
-            entry_data = DEFAULT_ENTRY_DATA | self.current_config
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][entity_id] = config
-            _LOGGER.debug(f"Saving new config: {entry_data}")
-            self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data = entry_data,
-                title = "KNXSync"
-            )
-            return self.async_create_entry(title="", data={})
-        
+                return await self.async_step_light()
+            else:
+                return self.async_abort(reason="not_supported")
+
         entity_reg = entity_registry.async_get(self.hass)
-        all_filtered_entities = [x for x in entity_reg.entities if get_domain(x) in SUPPORTED_DOMAINS]
+        all_filtered_entities = [id for id, entity in entity_reg.entities.data.items() if get_domain(id) in SUPPORTED_DOMAINS and entity.platform != DOMAIN_KNX]
         # Remove all entities that are already configured.
         all_valid_entities = [x for x in all_filtered_entities if x not in self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES].keys()]
         if len(all_valid_entities) == 0:
@@ -124,13 +107,54 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="new",
             data_schema=vol.Schema({
-                vol.Required(CONF_ENTITY_ID, default=all_valid_entities[0]): vol.In(all_valid_entities),
+                vol.Required(CONF_ENTITY_ID): vol.In(all_valid_entities),
+            })
+        )
+
+    async def async_step_remove(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        if user_input is not None:
+            entry_data = DEFAULT_ENTRY_DATA | self.general_settings
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES])
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES].pop(user_input[CONF_ENTITY_ID])
+            _LOGGER.debug(f"Saving new config: {entry_data}")
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data = entry_data,
+                title = "KNXSync"
+            )
+            return self.async_create_entry(title="", data={})
+
+        synced_entities = list(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES].keys())
+        _LOGGER.debug(f"Already set up entites: {synced_entities}")
+
+        return self.async_show_form(
+            step_id="remove",
+            data_schema=vol.Schema({
+                vol.Required(CONF_ENTITY_ID): vol.In(synced_entities),
+            })
+        )
+
+    async def async_step_edit(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        if user_input is not None:
+            domain = get_domain(user_input[CONF_ENTITY_ID])
+            if domain == DOMAIN_LIGHT:
+                self.selected_entity_id = user_input[CONF_ENTITY_ID]
+                return await self.async_step_light()
+
+        synced_entities = list(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES].keys())
+        _LOGGER.debug(f"Already set up entites: {synced_entities}")
+
+        return self.async_show_form(
+            step_id="edit",
+            data_schema=vol.Schema({
+                vol.Required(CONF_ENTITY_ID): vol.In(synced_entities),
             })
         )
 
     async def async_step_light(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
-            entry_data = DEFAULT_ENTRY_DATA | self.current_config
+            entry_data = DEFAULT_ENTRY_DATA | self.general_settings
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES])
             entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id] = user_input
             _LOGGER.debug(f"Saving new config: {entry_data}")
             self.hass.config_entries.async_update_entry(
@@ -140,18 +164,19 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
             )
             return self.async_create_entry(title="", data={})
 
-        data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id]
+        data = KNXSyncEntityLightData()
+        if not self.is_new_entity:
+            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id]
         _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
 
         return self.async_show_form(
             step_id="light",
             data_schema=vol.Schema({
-                # FIXME: These optionals are for some reason not optional
-                vol.Optional(CONF_ADDRESS, default=data.get(CONF_ADDRESS)): str,
-                vol.Optional(CONF_STATE_ADDRESS, default=data.get(CONF_STATE_ADDRESS)): str,
-                vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS, default=data.get(LightSchema.CONF_BRIGHTNESS_ADDRESS)): str,
-                vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS, default=data.get(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS)): str,
-                vol.Optional(LightSchema.CONF_COLOR_ADDRESS, default=data.get(LightSchema.CONF_COLOR_ADDRESS)): str,
-                vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS, default=data.get(LightSchema.CONF_COLOR_STATE_ADDRESS)): str
+                vol.Optional(CONF_ADDRESS, description={"suggested_value": data.get(CONF_ADDRESS)}): str,
+                vol.Optional(CONF_STATE_ADDRESS, description={"suggested_value": data.get(CONF_STATE_ADDRESS)}): str,
+                vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_ADDRESS)}): str,
+                vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS)}): str,
+                vol.Optional(LightSchema.CONF_COLOR_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)}): str,
+                vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_STATE_ADDRESS)}): str
             })
         )

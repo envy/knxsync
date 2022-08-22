@@ -34,6 +34,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: config_entries.ConfigEn
     hass.data[DOMAIN].pop(entry.entry_id)
     return True
 
+async def async_update_entry(hass: HomeAssistant, entry: config_entries.ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
+
 class KNXSyncer:
     def __init__(self, hass: HomeAssistant, config_entry: config_entries.ConfigEntry):
         self.hass = hass
@@ -69,5 +72,6 @@ class KNXSyncer:
 
         # async_listen returns a callback for unregistering the listener
         # We register that callback here to get called when we are unloaded
+        config_entry.async_on_unload(config_entry.add_update_listener(async_update_entry))
         config_entry.async_on_unload(self.hass.bus.async_listen('knx_event', self.got_telegram))
         config_entry.async_on_unload(self.hass.bus.async_listen('state_changed', self.state_changed))
