@@ -11,7 +11,6 @@
     "options": {
         "step": {
             "init": {
-                "title": "KNXSync",
                 "description": "Manage KNX synced entities here",
                 "menu_options": {
                     "new": "Add a new entity to sync",
@@ -21,23 +20,23 @@
             },
             "new": {
                 "title": "Add new entity",
-                "description": "Select the ID of the entity you want to add to sync.",
+                "description": "Select the entity you want to add to sync.",
                 "data": {
-                    "entity_id": "Entity ID"
+                    "entity_id": "Entity"
                 }
             },
             "remove": {
                 "title": "Remove an entity",
-                "description": "Select the ID of the entity you want to remove from sync.",
+                "description": "Select the entity you want to remove from sync.",
                 "data": {
-                    "entity_id": "Entity ID"
+                    "entity_id": "Entity"
                 }
             },
             "edit": {
                 "title": "Edit group addresses",
-                "description": "Select the ID of the entity you want to group address aassignments for.",
+                "description": "Select the entity you want to group address aassignments for.",
                 "data": {
-                    "entity_id": "Entity ID"
+                    "entity_id": "Entity"
                 }
             },
             "light": {

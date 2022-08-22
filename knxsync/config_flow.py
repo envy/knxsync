@@ -114,7 +114,11 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="new",
             data_schema=vol.Schema({
-                vol.Required(CONF_ENTITY_ID): vol.In(all_valid_entities),
+                vol.Required(CONF_ENTITY_ID): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        include_entities=all_valid_entities
+                        )
+                    ),
             })
         )
 
@@ -137,7 +141,12 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="remove",
             data_schema=vol.Schema({
-                vol.Required(CONF_ENTITY_ID): vol.In(synced_entities),
+                vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=synced_entities,
+                        mode=selector.SelectSelectorMode.DROPDOWN
+                    )
+                ),
             }),
             last_step=True
         )
@@ -155,7 +164,12 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="edit",
             data_schema=vol.Schema({
-                vol.Required(CONF_ENTITY_ID): vol.In(synced_entities),
+                vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=synced_entities,
+                        mode=selector.SelectSelectorMode.DROPDOWN
+                    )
+                ),
             })
         )
 
