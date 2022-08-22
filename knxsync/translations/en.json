@@ -44,6 +44,7 @@
                     "state_address": "State address",
                     "brightness_address": "Brightness address",
                     "brightness_state_address": "Brightness state address",
+                    "zero_brightness_when_off": "Zero brightness when off",
                     "color_address": "Color address",
                     "color_state_address": "Color state address"
                 },
@@ -52,6 +53,7 @@
                     "state_address": "DPT-1 | Light will report its on/off state.",
                     "brightness_address": "DPT-5 | Light will dim to requested percentage.",
                     "brightness_state_address": "DPT-5 | Light will report its dim level.",
+                    "zero_brightness_when_off": "Light will also report 0% brightness when turned off.",
                     "color_address": "DPT-232.600 | Light will set its color.",
                     "color_state_address": "DPT-232.600 | Light will report its color."
                 }

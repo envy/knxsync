@@ -13,7 +13,13 @@ from homeassistant.helpers import entity_registry
 
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN, CONF_KNXSYNC_SYNCED_ENTITIES, KNXSyncEntryData, KNXSyncEntityLightData
+from .const import (
+    DOMAIN,
+    CONF_KNXSYNC_SYNCED_ENTITIES,
+    CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF,
+    KNXSyncEntryData,
+    KNXSyncEntityLightData
+)
 from .helpers import get_domain, get_id
 
 import voluptuous as vol
@@ -176,6 +182,7 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(CONF_STATE_ADDRESS, description={"suggested_value": data.get(CONF_STATE_ADDRESS)}): str,
                 vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_ADDRESS)}): str,
                 vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS)}): str,
+                vol.Optional(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF, description={"suggested_value": data.get(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF)}): bool,
                 vol.Optional(LightSchema.CONF_COLOR_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)}): str,
                 vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_STATE_ADDRESS)}): str
             })

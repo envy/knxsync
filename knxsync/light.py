@@ -1,7 +1,10 @@
 import logging
 import asyncio
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
+)
 from .helpers import get_domain, get_id
 
 from homeassistant import config_entries
@@ -24,6 +27,7 @@ class SyncedLight:
         self.state_address: str | None = None
         self.brightness_address: str | None = None
         self.brightness_state_address: str | None = None
+        self.zero_brightness_when_off: bool | None = None
         self.color_address: str | None = None
         self.color_state_address: str | None = None
         self.hass = hass
@@ -45,6 +49,10 @@ class SyncedLight:
         if LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS in entity_config.keys():
             self.brightness_state_address = entity_config[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]
             _LOGGER.debug(f"{self.synced_entity_id} -> {self.brightness_state_address}")
+
+        if CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF in entity_config.keys():
+            self.zero_brightness_when_off = entity_config[CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF]
+            _LOGGER.debug(f"{self.synced_entity_id} will also report off as 0% brightness.")
 
         if LightSchema.CONF_COLOR_ADDRESS in entity_config.keys():
             self.color_address = entity_config[LightSchema.CONF_COLOR_ADDRESS]
@@ -97,6 +105,9 @@ class SyncedLight:
                 _LOGGER.debug(f"Sending {self.synced_entity_id} off -> {self.state_address}")
                 payload = 0
             await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: self.state_address, SERVICE_KNX_ATTR_PAYLOAD: payload})
+            if self.brightness_state_address is not None and self.zero_brightness_when_off and payload == 0:
+                payload = [0]
+                await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: self.brightness_state_address, SERVICE_KNX_ATTR_PAYLOAD: payload})
 
         if self.brightness_state_address is not None and ATTR_BRIGHTNESS in state.attributes.keys():
             brightness = state.attributes[ATTR_BRIGHTNESS]
