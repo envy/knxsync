@@ -24,5 +24,8 @@ class KNXSyncEntityLightData(KNXSyncEntityBaseData):
     color_address: str | None
     color_state_address: str | None
 
+class KNXSyncEntityBinarySensorData(KNXSyncEntityBaseData):
+    state_address: str | None
+
 class KNXSyncEntryData(TypedDict, total=False):
-    synced_entities: Mapping[str, KNXSyncEntityLightData]
+    synced_entities: Mapping[str, KNXSyncEntityLightData | KNXSyncEntityBinarySensorData]

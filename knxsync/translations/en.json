@@ -62,6 +62,16 @@
                     "color_address": "DPT-232.600 | Light will set its color.",
                     "color_state_address": "DPT-232.600 | Light will report its color."
                 }
+            },
+            "binary_sensor": {
+                "title": "Edit binary sensor",
+                "description": "Edit group address to sync this binary sensor with. This is handled through KNX exposure so GroupValueReads are always answered.",
+                "data": {
+                    "state_address": "State address"
+                },
+                "data_description": {
+                    "state_address": "DPT-1 | Binary sensor will report its on/off state."
+                }
             }
         },
         "error": {
@@ -69,7 +79,8 @@
             "unknown": "[%key:common::config_flow::error::unknown%]"
         },
         "abort": {
-            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+            "not_supported": "Domain is not supported"
         }
     }
 }

@@ -5,6 +5,7 @@ from typing import Any
 from homeassistant import config_entries, core, exceptions
 from homeassistant.core import callback
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITIES, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
+from homeassistant.components.binary_sensor import DOMAIN as DOMAIN_BINARY_SENSOR
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT
 from homeassistant.components.knx.const import DOMAIN as DOMAIN_KNX, CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
@@ -19,6 +20,7 @@ from .const import (
     CONF_KNXSYNC_BASE_ANSWER_READS,
     CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF,
     KNXSyncEntryData,
+    KNXSyncEntityBinarySensorData,
     KNXSyncEntityLightData
 )
 from .helpers import get_domain, get_id
@@ -27,24 +29,11 @@ import voluptuous as vol
 
 _LOGGER = logging.getLogger(DOMAIN)
 
-SUPPORTED_DOMAINS = ["light"]
+SUPPORTED_DOMAINS = [DOMAIN_LIGHT, DOMAIN_BINARY_SENSOR]
 
 DEFAULT_ENTRY_DATA = KNXSyncEntryData(
     synced_entities=dict()
 )
-
-STEP_INIT_DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_ENTITY_ID): cv.string
-})
-
-STEP_LIGHT_DATA_SCHEMA = vol.Schema({
-    vol.Optional(CONF_ADDRESS): str,
-    vol.Optional(CONF_STATE_ADDRESS): str,
-    vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS): str,
-    vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS): str,
-    vol.Optional(LightSchema.CONF_COLOR_ADDRESS): str,
-    vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS): str
-})
 
 class KNXSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """KNXSync config flow"""
@@ -101,6 +90,8 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
             config = None
             if domain == DOMAIN_LIGHT:
                 return await self.async_step_light()
+            elif domain == DOMAIN_BINARY_SENSOR:
+                return await self.async_step_binary_sensor()
             else:
                 return self.async_abort(reason="not_supported")
 
@@ -154,10 +145,13 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
             domain = get_domain(user_input[CONF_ENTITY_ID])
+            self.selected_entity_id = user_input[CONF_ENTITY_ID]
             if domain == DOMAIN_LIGHT:
-                self.selected_entity_id = user_input[CONF_ENTITY_ID]
                 return await self.async_step_light()
+            elif domain == DOMAIN_BINARY_SENSOR:
+                return await self.async_step_binary_sensor()
 
+        self.selected_entity_id = None
         synced_entities = list(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES].keys())
         _LOGGER.debug(f"Already set up entites: {synced_entities}")
 
@@ -202,6 +196,33 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF, description={"suggested_value": data.get(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF)}): selector.BooleanSelector(),
                 vol.Optional(LightSchema.CONF_COLOR_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)}): selector.TextSelector(),
                 vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_STATE_ADDRESS)}): selector.TextSelector()
+            }),
+            last_step=True
+        )
+
+    async def async_step_binary_sensor(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        if user_input is not None:
+            entry_data = DEFAULT_ENTRY_DATA | self.general_settings
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES])
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id] = user_input
+            _LOGGER.debug(f"Saving new config: {entry_data}")
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data = entry_data,
+                title = "KNXSync"
+            )
+            return self.async_create_entry(title="", data={})
+
+        data = KNXSyncEntityBinarySensorData()
+        if not self.is_new_entity:
+            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id]
+        _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
+
+        return self.async_show_form(
+            step_id="binary_sensor",
+            data_schema=vol.Schema({
+                # vol.Optional(CONF_KNXSYNC_BASE_ANSWER_READS, description={"suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)}): selector.BooleanSelector(),
+                vol.Optional(CONF_STATE_ADDRESS, description={"suggested_value": data.get(CONF_STATE_ADDRESS)}): selector.TextSelector(),
             }),
             last_step=True
         )

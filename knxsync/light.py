@@ -10,9 +10,7 @@ from .const import (
 from .base import SyncedEntity
 from .helpers import get_domain, get_id
 
-from homeassistant import config_entries
 from homeassistant.core import Event, State, HomeAssistant
-
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT, ATTR_RGB_COLOR, ATTR_BRIGHTNESS
 from homeassistant.components.knx import (
@@ -70,7 +68,7 @@ class SyncedLight(SyncedEntity):
             self.color_state_address = entity_config[LightSchema.CONF_COLOR_STATE_ADDRESS]
             _LOGGER.debug(f"{self.synced_entity_id} -> {self.color_state_address}")
 
-    async def got_telegram(self, event: Event) -> None:
+    async def async_got_telegram(self, event: Event) -> None:
         data = event.data
         address = data['destination']
         type = data['telegramtype']
@@ -108,7 +106,7 @@ class SyncedLight(SyncedEntity):
             if self.color_state_address == address:
                 await self._send_color(True)
 
-    async def state_changed(self, event: Event) -> None:
+    async def async_state_changed(self, event: Event) -> None:
         data = event.data
 
         if 'new_state' not in data.keys():
@@ -122,7 +120,7 @@ class SyncedLight(SyncedEntity):
         if self.color_state_address is not None and ATTR_RGB_COLOR in self.state.attributes.keys():
             await self._send_color()
 
-    async def setup_events(self):
+    async def async_setup_events(self) -> None:
         if self.address is not None:
             _LOGGER.debug(f"registering receiver {self.address} -> {self.synced_entity_id}")
             await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, { KNX_ADDRESS: self.address })
@@ -148,7 +146,7 @@ class SyncedLight(SyncedEntity):
             _LOGGER.debug(f"registering receiver {self.color_state_address} <- {self.synced_entity_id}")
             await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, { KNX_ADDRESS: self.color_state_address })
 
-    async def _send_onoff(self, response: bool = False):
+    async def _send_onoff(self, response: bool = False) -> None:
         if self.state == None:
             return
         if self.state.state == STATE_ON:
@@ -162,7 +160,7 @@ class SyncedLight(SyncedEntity):
             payload = [0]
             await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: self.brightness_state_address, SERVICE_KNX_ATTR_PAYLOAD: payload})
 
-    async def _send_brightness(self, response: bool = False):
+    async def _send_brightness(self, response: bool = False) -> None:
         if self.state == None:
             return
         brightness = self.state.attributes[ATTR_BRIGHTNESS]
@@ -170,7 +168,7 @@ class SyncedLight(SyncedEntity):
         _LOGGER.debug(f"Sending {self.synced_entity_id} brightness -> {self.brightness_state_address}")
         await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: self.brightness_state_address, SERVICE_KNX_ATTR_PAYLOAD: payload, SERVICE_KNX_ATTR_RESPONSE: response})
 
-    async def _send_color(self, reponse: bool = False):
+    async def _send_color(self, reponse: bool = False) -> None:
         if self.state == None:
             return
         rgb = self.state.attributes[ATTR_RGB_COLOR]
