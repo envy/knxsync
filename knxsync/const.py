@@ -12,15 +12,17 @@ CONF_KNXSYNC_BASE_ANSWER_READS: Final = "answer_reads"
 
 CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF: Final = "zero_brightness_when_off"
 
-class KNXSyncEntityLightData(TypedDict, total=False):
+class KNXSyncEntityBaseData(TypedDict, total=False):
     answer_reads: bool | None
+
+class KNXSyncEntityLightData(KNXSyncEntityBaseData):
     address: str | None
     state_address: str | None
     brightness_address: str | None
     brightness_state_address: str | None
+    zero_brightness_when_off: bool | None
     color_address: str | None
     color_state_address: str | None
-    zero_brightness_when_off: bool | None
 
 class KNXSyncEntryData(TypedDict, total=False):
     synced_entities: Mapping[str, KNXSyncEntityLightData]

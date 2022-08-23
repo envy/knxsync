@@ -9,13 +9,12 @@ import asyncio
 
 import voluptuous as vol
 
-from .light import SyncedLight
 from .const import DOMAIN, CONF_KNXSYNC_SYNCED_ENTITIES
+from .light import SyncedLight
 from .helpers import get_domain, get_id
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
-
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
@@ -52,17 +51,11 @@ class KNXSyncer:
             else:
                 _LOGGER.error(f"Unsupported domain '{domain}'")
 
-    async def got_telegram(self, event):
+    async def got_telegram(self, event: Event) -> None:
         for entity_id, syncer in self.synced_entities.items():
             await syncer.got_telegram(event)
 
-    async def state_changed(self, event):
-        entity_id = event.data[ATTR_ENTITY_ID]
-        if entity_id not in self.synced_entities.keys():
-            return
-        await self.synced_entities[entity_id].state_changed(event)
-
-    async def setup_events(self, config_entry: config_entries.ConfigEntry):
+    async def setup_events(self, config_entry: config_entries.ConfigEntry) -> None:
         _LOGGER.debug("Setting up event listeners")
 
         for entity_id, syncer in self.synced_entities.items():
@@ -72,4 +65,10 @@ class KNXSyncer:
         # We register that callback here to get called when we are unloaded
         config_entry.async_on_unload(config_entry.add_update_listener(async_update_entry))
         config_entry.async_on_unload(self.hass.bus.async_listen('knx_event', self.got_telegram))
-        config_entry.async_on_unload(self.hass.bus.async_listen('state_changed', self.state_changed))
+        config_entry.async_on_unload(self.shutdown)
+
+    @callback
+    def shutdown(self) -> None:
+        _LOGGER.debug("Shutting down...")
+        for entity_id, syncer in self.synced_entities.items():
+            syncer.shutdown()

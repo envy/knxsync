@@ -11,7 +11,7 @@ from .base import SyncedEntity
 from .helpers import get_domain, get_id
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, State, HomeAssistant
 
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT, ATTR_RGB_COLOR, ATTR_BRIGHTNESS
@@ -70,7 +70,7 @@ class SyncedLight(SyncedEntity):
             self.color_state_address = entity_config[LightSchema.CONF_COLOR_STATE_ADDRESS]
             _LOGGER.debug(f"{self.synced_entity_id} -> {self.color_state_address}")
 
-    async def got_telegram(self, event):
+    async def got_telegram(self, event: Event) -> None:
         data = event.data
         address = data['destination']
         type = data['telegramtype']
@@ -108,7 +108,7 @@ class SyncedLight(SyncedEntity):
             if self.color_state_address == address:
                 await self._send_color(True)
 
-    async def state_changed(self, event):
+    async def state_changed(self, event: Event) -> None:
         data = event.data
 
         if 'new_state' not in data.keys():
@@ -149,6 +149,8 @@ class SyncedLight(SyncedEntity):
             await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, { KNX_ADDRESS: self.color_state_address })
 
     async def _send_onoff(self, response: bool = False):
+        if self.state == None:
+            return
         if self.state.state == STATE_ON:
             _LOGGER.debug(f"Sending {self.synced_entity_id} on -> {self.state_address}")
             payload = 1
@@ -161,12 +163,16 @@ class SyncedLight(SyncedEntity):
             await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: self.brightness_state_address, SERVICE_KNX_ATTR_PAYLOAD: payload})
 
     async def _send_brightness(self, response: bool = False):
+        if self.state == None:
+            return
         brightness = self.state.attributes[ATTR_BRIGHTNESS]
         payload = [brightness] # XKNX requires a list for 1 byte payload
         _LOGGER.debug(f"Sending {self.synced_entity_id} brightness -> {self.brightness_state_address}")
         await self.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_SEND, { KNX_ADDRESS: self.brightness_state_address, SERVICE_KNX_ATTR_PAYLOAD: payload, SERVICE_KNX_ATTR_RESPONSE: response})
 
     async def _send_color(self, reponse: bool = False):
+        if self.state == None:
+            return
         rgb = self.state.attributes[ATTR_RGB_COLOR]
         payload = list(rgb)
         _LOGGER.debug(f"Sending {self.synced_entity_id} color -> {self.color_state_address}")
