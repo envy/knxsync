@@ -8,7 +8,7 @@ from .const import (
     CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
 )
 from .base import SyncedEntity
-from .helpers import get_domain, get_id
+from .helpers import get_id, parse_group_addresses
 
 from homeassistant.core import Event, State, HomeAssistant
 from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
@@ -41,19 +41,19 @@ class SyncedLight(SyncedEntity):
         _LOGGER.debug(f"Setting up synced light '{self.synced_entity_id}'")
 
         if CONF_ADDRESS in entity_config.keys():
-            self.address = list(map(lambda x: x.strip(), entity_config[CONF_ADDRESS].split(",")))
+            self.address = parse_group_addresses(entity_config[CONF_ADDRESS])
             _LOGGER.debug(f"{self.synced_entity_id} <- {self.address}")
 
         if CONF_STATE_ADDRESS in entity_config.keys():
-            self.state_address = list(map(lambda x: x.strip(), entity_config[CONF_STATE_ADDRESS].split(",")))
+            self.state_address = parse_group_addresses(entity_config[CONF_STATE_ADDRESS])
             _LOGGER.debug(f"{self.synced_entity_id} -> {self.state_address}")
 
         if LightSchema.CONF_BRIGHTNESS_ADDRESS in entity_config.keys():
-            self.brightness_address = list(map(lambda x: x.strip(), entity_config[LightSchema.CONF_BRIGHTNESS_ADDRESS].split(",")))
+            self.brightness_address = parse_group_addresses(entity_config[LightSchema.CONF_BRIGHTNESS_ADDRESS])
             _LOGGER.debug(f"{self.synced_entity_id} <- {self.brightness_address}")
 
         if LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS in entity_config.keys():
-            self.brightness_state_address = list(map(lambda x: x.strip(), entity_config[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS].split(",")))
+            self.brightness_state_address = parse_group_addresses(entity_config[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS])
             _LOGGER.debug(f"{self.synced_entity_id} -> {self.brightness_state_address}")
 
         if CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF in entity_config.keys():
@@ -61,11 +61,11 @@ class SyncedLight(SyncedEntity):
             _LOGGER.debug(f"{self.synced_entity_id} will also report off as 0% brightness.")
 
         if LightSchema.CONF_COLOR_ADDRESS in entity_config.keys():
-            self.color_address = list(map(lambda x: x.strip(), entity_config[LightSchema.CONF_COLOR_ADDRESS].split(",")))
+            self.color_address = parse_group_addresses(entity_config[LightSchema.CONF_COLOR_ADDRESS])
             _LOGGER.debug(f"{self.synced_entity_id} <- {self.color_address}")
 
         if LightSchema.CONF_COLOR_STATE_ADDRESS in entity_config.keys():
-            self.color_state_address = list(map(lambda x: x.strip(), entity_config[LightSchema.CONF_COLOR_STATE_ADDRESS].split(",")))
+            self.color_state_address = parse_group_addresses(entity_config[LightSchema.CONF_COLOR_STATE_ADDRESS])
             _LOGGER.debug(f"{self.synced_entity_id} -> {self.color_state_address}")
 
     async def async_got_telegram(self, event: Event) -> None:

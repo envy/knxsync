@@ -9,6 +9,9 @@ def get_domain(eid: str) -> str:
 def get_id(eid: str) -> str:
     return eid.split('.')[1]
 
+def parse_group_addresses(s: str) -> [str] | None:
+    return filter(None, list(map(lambda x: x.strip(), s.split(",")))) or None
+
 def group_address(value: Any) -> str:
     str_value = str(value).lower()
     m = re.search('', str_value)
