@@ -1,5 +1,5 @@
 import voluptuous as vol
-from typing import Any
+from typing import Any, Optional
 import homeassistant.helpers.config_validation as cv
 import re
 
@@ -9,8 +9,8 @@ def get_domain(eid: str) -> str:
 def get_id(eid: str) -> str:
     return eid.split('.')[1]
 
-def parse_group_addresses(s: str) -> [str] | None:
-    return filter(None, list(map(lambda x: x.strip(), s.split(",")))) or None
+def parse_group_addresses(s: str) -> Optional[list[str]]:
+    return list(filter(None, list(map(lambda x: x.strip(), s.split(","))))) or None
 
 def group_address(value: Any) -> str:
     str_value = str(value).lower()

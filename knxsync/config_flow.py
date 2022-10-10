@@ -23,7 +23,7 @@ from .const import (
     KNXSyncEntityBinarySensorData,
     KNXSyncEntityLightData
 )
-from .helpers import get_domain, get_id
+from .helpers import get_domain
 
 import voluptuous as vol
 
