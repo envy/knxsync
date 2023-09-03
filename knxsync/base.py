@@ -1,14 +1,13 @@
 import logging
-import asyncio
 
 from .const import DOMAIN, CONF_KNXSYNC_BASE_ANSWER_READS
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import async_track_state_change_event
 
 _LOGGER = logging.getLogger(DOMAIN)
+
 
 class SyncedEntity:
     hass: HomeAssistant
@@ -24,10 +23,10 @@ class SyncedEntity:
             self.hass, [self.synced_entity_id], self.async_state_changed
         )
 
-    async def async_got_telegram(self, event: Event) -> None:
+    async def async_got_telegram(self, _: Event) -> None:
         pass
 
-    async def async_state_changed(self, event: Event) -> None:
+    async def async_state_changed(self, _: Event) -> None:
         pass
 
     async def async_setup_events(self) -> None:

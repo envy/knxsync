@@ -1,19 +1,14 @@
 import logging
-import asyncio
 
 from .const import (
     DOMAIN,
-    TELEGRAMTYPE_READ,
-    TELEGRAMTYPE_WRITE,
-    CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
 )
 from .base import SyncedEntity
 from .helpers import parse_group_addresses
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, State, HomeAssistant
-from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
-from homeassistant.components.binary_sensor import DOMAIN as DOMAIN_BINARY_SENSOR
+from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.components.knx import (
     DOMAIN as DOMAIN_KNX,
     SERVICE_KNX_ATTR_REMOVE,

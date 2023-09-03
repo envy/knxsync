@@ -24,6 +24,15 @@ class KNXSyncEntityLightData(KNXSyncEntityBaseData):
     color_address: str | None
     color_state_address: str | None
 
+class KNXSyncEntityClimateData(KNXSyncEntityBaseData):
+    temperature_address: str | None
+    target_temperature_address: str | None
+    target_temperature_state_address: str | None
+    operation_mode_address: str | None
+    operation_mode_state_address: bool | None
+    controller_mode_address: str | None
+    controller_mode_state_address: str | None
+
 class KNXSyncEntityBinarySensorData(KNXSyncEntityBaseData):
     state_address: str | None
 

@@ -1,7 +1,17 @@
-import voluptuous as vol
-from typing import Any, Optional
-import homeassistant.helpers.config_validation as cv
-import re
+import logging
+from typing import Optional
+
+from .const import DOMAIN
+
+from homeassistant.components.knx import (
+    DOMAIN as DOMAIN_KNX,
+    SERVICE_KNX_EVENT_REGISTER
+)
+from homeassistant.components.knx.const import KNX_ADDRESS
+
+from .base import SyncedEntity
+
+_LOGGER = logging.getLogger(DOMAIN)
 
 def get_domain(eid: str) -> str:
     return eid.split('.')[0]
@@ -12,12 +22,14 @@ def get_id(eid: str) -> str:
 def parse_group_addresses(s: str) -> Optional[list[str]]:
     return list(filter(None, list(map(lambda x: x.strip(), s.split(","))))) or None
 
-def group_address(value: Any) -> str:
-    str_value = str(value).lower()
-    m = re.search('', str_value)
-    area = m.group(0)
-    line = m.group(1)
-    member = m.group(2)
-    # TODO: test stuff
-    # return vol.Invalid(f"{value} is not a valid KNX group address.")
-    return str_value
+def set_value_from_config(entity: SyncedEntity, config: dict, config_key: str) -> None:
+    if config_key in config.keys():
+        setattr(entity, config_key, parse_group_addresses(config[config_key]))
+        _LOGGER.debug(f"{entity.synced_entity_id} <- {getattr(entity, config_key)}")
+
+async def register_receiver(entity: SyncedEntity, attr: str) -> None:
+    v = getattr(entity, attr)
+    if v is not None:
+        for address in v:
+            _LOGGER.debug(f"registering receiver {address} -> {entity.synced_entity_id}")
+            await entity.hass.services.async_call(DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, { KNX_ADDRESS: address })

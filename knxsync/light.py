@@ -1,5 +1,4 @@
 import logging
-import asyncio
 
 from .const import (
     DOMAIN,
@@ -8,10 +7,10 @@ from .const import (
     CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
 )
 from .base import SyncedEntity
-from .helpers import get_id, parse_group_addresses
+from .helpers import parse_group_addresses
 
-from homeassistant.core import Event, State, HomeAssistant
-from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
+from homeassistant.core import Event, HomeAssistant
+from homeassistant.const import ATTR_ENTITY_ID, CONF_ADDRESS, SERVICE_TURN_ON, SERVICE_TURN_OFF, STATE_ON
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT, ATTR_RGB_COLOR, ATTR_BRIGHTNESS
 from homeassistant.components.knx import (
     DOMAIN as DOMAIN_KNX,
@@ -22,9 +21,6 @@ from homeassistant.components.knx import (
 )
 from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
-
-from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
-from xknx.dpt.dpt_2byte_signed import DPT2ByteSigned
 
 _LOGGER = logging.getLogger(DOMAIN)
 
@@ -99,11 +95,11 @@ class SyncedLight(SyncedEntity):
                     await self.hass.services.async_call(DOMAIN_LIGHT, SERVICE_TURN_ON, { ATTR_ENTITY_ID: self.synced_entity_id, ATTR_RGB_COLOR: payload })
         elif type == TELEGRAMTYPE_READ and self.answer_reads and self.state is not None:
             _LOGGER.debug(f"Reading state for {self.synced_entity_id} <- {address}")
-            if self.state_address == address:
+            if address in self.state_address:
                 await self._send_onoff(True)
-            if self.brightness_state_address == address:
+            if address in self.brightness_state_address:
                 await self._send_brightness(True)
-            if self.color_state_address == address:
+            if address in self.color_state_address:
                 await self._send_color(True)
 
     async def async_state_changed(self, event: Event) -> None:

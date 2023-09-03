@@ -63,6 +63,30 @@
                     "color_state_address": "DPT-232.600 | Light will report its color."
                 }
             },
+            "climate": {
+                "title": "Edit climate",
+                "description": "Edit group addresses to sync this climate entity with.",
+                "data": {
+                    "answer_reads": "Answer read requests",
+                    "temperature_address": "Temperature address",
+                    "target_temperature_address": "Target temperature address",
+                    "target_temperature_state_address": "Target temperature state address",
+                    "operation_mode_address": "Operation mode address",
+                    "operation_mode_state_address": "Operation mode state address",
+                    "controller_mode_address": "Controller mode address",
+                    "controller_mode_state_address": "Controller mode state address"
+                },
+                "data_description": {
+                    "answer_reads": "Whether to answer GroupValueRead requests to state addresses with the last sent state.",
+                    "temperature_address": "DPT-9.001 | CLimate will report its current temperature.",
+                    "target_temperature_address": "DPT-9.001 | Climate will set setpoint temperature.",
+                    "target_temperature_state_address": "DPT-9.001 | Climate will report setpoint temperature.",
+                    "operation_mode_address": "DPT-20.102 | Climate will set its operation mode.",
+                    "operation_mode_state_address": "DPT-20.102 | Climate will report its operation mode.",
+                    "controller_mode_address": "DPT-20.105 | Climate will set its controller mode.",
+                    "controller_mode_state_address": "DPT-20.105 |Climate will report its controller mode."
+                }
+            },
             "binary_sensor": {
                 "title": "Edit binary sensor",
                 "description": "Edit group address to sync this binary sensor with. This is handled through KNX exposure so GroupValueReads are always answered.",

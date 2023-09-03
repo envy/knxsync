@@ -15,6 +15,7 @@ A working KNX integration.
 The following domains are currently supported:
 
 - Light (on/off, brightness, RGB color)
+- Climate (current and target temperature, HVAC operation mode)
 - Binary sensor (UI for native knx exposure)
 
 ## How to use

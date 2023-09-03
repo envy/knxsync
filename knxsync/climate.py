@@ -1,0 +1,239 @@
+import logging
+
+from .const import DOMAIN, TELEGRAMTYPE_READ, TELEGRAMTYPE_WRITE
+from .base import SyncedEntity
+from .helpers import set_value_from_config, register_receiver
+
+from homeassistant.core import Event, HomeAssistant
+from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.components.climate import (
+    DOMAIN as DOMAIN_CLIMATE,
+    ATTR_CURRENT_TEMPERATURE,
+    ATTR_TEMPERATURE,
+    ATTR_HVAC_MODE,
+    ATTR_HVAC_MODES,
+    SERVICE_SET_TEMPERATURE,
+    SERVICE_SET_HVAC_MODE,
+    HVACMode,
+)
+from homeassistant.components.knx.schema import ClimateSchema
+from homeassistant.components.knx import (
+    DOMAIN as DOMAIN_KNX,
+    SERVICE_KNX_SEND,
+    SERVICE_KNX_ATTR_PAYLOAD,
+    SERVICE_KNX_ATTR_RESPONSE,
+    SERVICE_KNX_ATTR_TYPE,
+)
+from homeassistant.components.knx.const import KNX_ADDRESS
+from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
+from xknx.dpt.dpt_hvac_mode import DPTHVACContrMode, HVACControllerMode
+from xknx.dpt.payload import DPTArray
+
+_LOGGER = logging.getLogger(DOMAIN)
+
+HA_HVAC_CONTROLLER_MODE_MAP = {
+    HVACMode.AUTO: HVACControllerMode.AUTO,
+    HVACMode.COOL: HVACControllerMode.COOL,
+    HVACMode.DRY: HVACControllerMode.DRY,
+    HVACMode.FAN_ONLY: HVACControllerMode.FAN_ONLY,
+    HVACMode.HEAT: HVACControllerMode.HEAT,
+    # HVACMode.HEAT_COOL: HVACControllerMode.AUTO,
+    HVACMode.OFF: HVACControllerMode.OFF,
+}
+
+XKNX_HVAC_CONTROLLER_MODE_MAP = dict(
+    (v, k) for k, v in HA_HVAC_CONTROLLER_MODE_MAP.items()
+)
+
+
+def ha_to_xknx_controller_mode(ha: HVACMode) -> HVACControllerMode:
+    return HA_HVAC_CONTROLLER_MODE_MAP[ha]
+
+
+def xknx_to_ha_controller_mode(knx: HVACControllerMode) -> HVACMode:
+    return XKNX_HVAC_CONTROLLER_MODE_MAP[knx]
+
+
+class SyncedClimate(SyncedEntity):
+    def __init__(self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict):
+        super().__init__(hass, synced_entity_id, entity_config)
+        self.temperature_address: [str] | None = None
+        self.target_temperature_address: [str] | None = None
+        self.target_temperature_state_address: [str] | None = None
+        self.operation_mode_address: [str] | None = None
+        self.operation_mode_state_address: bool | None = None
+        self.controller_mode_address: [str] | None = None
+        self.controller_mode_state_address: [str] | None = None
+        _LOGGER.debug(f"Setting up synced climate '{self.synced_entity_id}'")
+
+        set_value_from_config(
+            self, entity_config, ClimateSchema.CONF_TEMPERATURE_ADDRESS
+        )
+        set_value_from_config(
+            self, entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS
+        )
+        set_value_from_config(
+            self, entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
+        )
+        set_value_from_config(
+            self, entity_config, ClimateSchema.CONF_OPERATION_MODE_ADDRESS
+        )
+        set_value_from_config(
+            self, entity_config, ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS
+        )
+        set_value_from_config(
+            self, entity_config, ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS
+        )
+        set_value_from_config(
+            self, entity_config, ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS
+        )
+
+    async def async_got_telegram(self, event: Event) -> None:
+        data = event.data
+        address = data["destination"]
+        type = data["telegramtype"]
+
+        if type == TELEGRAMTYPE_WRITE:
+            payload = data["data"]
+            if address in self.target_temperature_address:
+                value = DPT2ByteFloat.from_knx(DPTArray(payload))
+                _LOGGER.debug(
+                    f"Setting setpoint of {self.synced_entity_id} <- {address}"
+                )
+                await self.hass.services.async_call(
+                    DOMAIN_CLIMATE,
+                    SERVICE_SET_TEMPERATURE,
+                    {ATTR_ENTITY_ID: self.synced_entity_id, ATTR_TEMPERATURE: value},
+                )
+            if address in self.controller_mode_address:
+                value = xknx_to_ha_controller_mode(
+                    DPTHVACContrMode.from_knx(DPTArray(payload))
+                )
+                _LOGGER.debug(
+                    f"Setting operation mode of {self.synced_entity_id} <- {address}"
+                )
+                if self.state != None:
+                    if value not in self.state.attributes[ATTR_HVAC_MODES]:
+                        await self.hass.services.async_call(
+                            DOMAIN_CLIMATE,
+                            SERVICE_SET_HVAC_MODE,
+                            {
+                                ATTR_ENTITY_ID: self.synced_entity_id,
+                                ATTR_HVAC_MODE: value,
+                            },
+                        )
+                    else:
+                        _LOGGER.error(
+                            f"Could not set controller mode of {self.synced_entity_id}: Requested mode '{value}' is not in reported available modes '{self.state.attributes[ATTR_HVAC_MODES]}'"
+                        )
+                else:
+                    _LOGGER.error(
+                        f"Could not set controller mode of {self.synced_entity_id}: No state available to check if mode is suported."
+                    )
+        elif type == TELEGRAMTYPE_READ and self.answer_reads and self.state is not None:
+            _LOGGER.debug(f"Reading state for {self.synced_entity_id} <- {address}")
+            if address in self.temperature_address:
+                await self._send_current_temperature(True)
+            if address in self.target_temperature_state_address:
+                await self._send_setpoint_temperature(True)
+            if address in self.controller_mode_state_address:
+                await self._send_controller_mode(True)
+
+    async def async_state_changed(self, event: Event) -> None:
+        data = event.data
+
+        if "new_state" not in data.keys():
+            return
+        self.state = data["new_state"]
+
+        _LOGGER.debug(f"new state: {self.state}")
+
+        if (
+            self.temperature_address is not None
+            and ATTR_CURRENT_TEMPERATURE in self.state.attributes.keys()
+        ):
+            await self._send_current_temperature()
+        if (
+            self.target_temperature_state_address is not None
+            and ATTR_TEMPERATURE in self.state.attributes.keys()
+        ):
+            await self._send_setpoint_temperature()
+        if self.controller_mode_state_address is not None:
+            await self._send_controller_mode()
+
+    async def _send_current_temperature(self, response: bool = False) -> None:
+        if self.state == None:
+            return
+        current_temperature = self.state.attributes[ATTR_CURRENT_TEMPERATURE]
+        _LOGGER.debug(
+            f"Sending {self.synced_entity_id} current temperature -> {self.temperature_address}"
+        )
+        payload = current_temperature
+        for address in self.temperature_address:
+            await self.hass.services.async_call(
+                DOMAIN_KNX,
+                SERVICE_KNX_SEND,
+                {
+                    KNX_ADDRESS: address,
+                    SERVICE_KNX_ATTR_PAYLOAD: payload,
+                    SERVICE_KNX_ATTR_TYPE: "temperature",
+                    SERVICE_KNX_ATTR_RESPONSE: response,
+                },
+            )
+
+    async def _send_setpoint_temperature(self, response: bool = False) -> None:
+        if self.state == None:
+            return
+        setpoint_temperature = self.state.attributes[ATTR_TEMPERATURE]
+        payload = setpoint_temperature
+        _LOGGER.debug(
+            f"Sending {self.synced_entity_id} setpoint temperarute -> {self.target_temperature_state_address}"
+        )
+        for address in self.target_temperature_state_address:
+            await self.hass.services.async_call(
+                DOMAIN_KNX,
+                SERVICE_KNX_SEND,
+                {
+                    KNX_ADDRESS: address,
+                    SERVICE_KNX_ATTR_PAYLOAD: payload,
+                    SERVICE_KNX_ATTR_TYPE: "temperature",
+                    SERVICE_KNX_ATTR_RESPONSE: response,
+                },
+            )
+
+    async def _send_controller_mode(self, response: bool = False):
+        if self.state == None:
+            return
+        op_mode = self.state.state
+        payload = list(
+            DPTHVACContrMode.to_knx(ha_to_xknx_controller_mode(op_mode)).value
+        )
+        _LOGGER.debug(
+            f"Sending {self.synced_entity_id} controller mode -> {self.controller_mode_state_address}"
+        )
+        for address in self.controller_mode_state_address:
+            await self.hass.services.async_call(
+                DOMAIN_KNX,
+                SERVICE_KNX_SEND,
+                {
+                    KNX_ADDRESS: address,
+                    SERVICE_KNX_ATTR_PAYLOAD: payload,
+                    SERVICE_KNX_ATTR_RESPONSE: response,
+                },
+            )
+
+    async def async_setup_events(self) -> None:
+        await register_receiver(self, ClimateSchema.CONF_TEMPERATURE_ADDRESS)
+        await register_receiver(self, ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS)
+        await register_receiver(self, ClimateSchema.CONF_OPERATION_MODE_ADDRESS)
+        await register_receiver(self, ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS)
+
+        if not self.answer_reads:
+            return
+        # Register for potential reads
+
+        await register_receiver(
+            self, ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
+        )
+        await register_receiver(self, ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS)
+        await register_receiver(self, ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS)
