@@ -1,7 +1,7 @@
 from typing import TypedDict, Final
 from collections.abc import Mapping
 
-DOMAIN = 'knxsync'
+DOMAIN = "knxsync"
 
 TELEGRAMTYPE_WRITE: Final = "GroupValueWrite"
 TELEGRAMTYPE_READ: Final = "GroupValueRead"
@@ -12,8 +12,10 @@ CONF_KNXSYNC_BASE_ANSWER_READS: Final = "answer_reads"
 
 CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF: Final = "zero_brightness_when_off"
 
+
 class KNXSyncEntityBaseData(TypedDict, total=False):
     answer_reads: bool | None
+
 
 class KNXSyncEntityLightData(KNXSyncEntityBaseData):
     address: str | None
@@ -24,6 +26,7 @@ class KNXSyncEntityLightData(KNXSyncEntityBaseData):
     color_address: str | None
     color_state_address: str | None
 
+
 class KNXSyncEntityClimateData(KNXSyncEntityBaseData):
     temperature_address: str | None
     target_temperature_address: str | None
@@ -33,8 +36,12 @@ class KNXSyncEntityClimateData(KNXSyncEntityBaseData):
     controller_mode_address: str | None
     controller_mode_state_address: str | None
 
+
 class KNXSyncEntityBinarySensorData(KNXSyncEntityBaseData):
     state_address: str | None
 
+
 class KNXSyncEntryData(TypedDict, total=False):
-    synced_entities: Mapping[str, KNXSyncEntityLightData | KNXSyncEntityBinarySensorData]
+    synced_entities: Mapping[
+        str, KNXSyncEntityLightData | KNXSyncEntityBinarySensorData
+    ]

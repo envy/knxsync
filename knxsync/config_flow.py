@@ -31,9 +31,8 @@ _LOGGER = logging.getLogger(DOMAIN)
 
 SUPPORTED_DOMAINS = [DOMAIN_LIGHT, DOMAIN_CLIMATE, DOMAIN_BINARY_SENSOR]
 
-DEFAULT_ENTRY_DATA = KNXSyncEntryData(
-    synced_entities=dict()
-)
+DEFAULT_ENTRY_DATA = KNXSyncEntryData(synced_entities=dict())
+
 
 class KNXSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """KNXSync config flow"""
@@ -45,7 +44,9 @@ class KNXSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry) -> config_entries.OptionsFlow:
         return KNXSyncOptionsFlowHandler(config_entry)
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         return await self.async_step_init(user_input)
 
     async def async_step_init(self, _: dict[str, Any] | None = None) -> FlowResult:
@@ -74,14 +75,17 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
         self.is_new_entity = False
         self.selected_entity_id = None
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         self.current_config = self.config_entry.data
         return self.async_show_menu(
-            step_id="init",
-            menu_options=["new", "remove", "edit"]
+            step_id="init", menu_options=["new", "remove", "edit"]
         )
 
-    async def async_step_new(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_new(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         if user_input is not None:
             entity_id = user_input[CONF_ENTITY_ID]
             self.selected_entity_id = entity_id
@@ -97,33 +101,45 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_abort(reason="not_supported")
 
         entity_reg = entity_registry.async_get(self.hass)
-        all_filtered_entities = [id for id, entity in entity_reg.entities.data.items() if get_domain(id) in SUPPORTED_DOMAINS and entity.platform != DOMAIN_KNX]
+        all_filtered_entities = [
+            id
+            for id, entity in entity_reg.entities.data.items()
+            if get_domain(id) in SUPPORTED_DOMAINS and entity.platform != DOMAIN_KNX
+        ]
         # Remove all entities that are already configured.
-        all_valid_entities = [x for x in all_filtered_entities if x not in self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES].keys()]
+        all_valid_entities = [
+            x
+            for x in all_filtered_entities
+            if x not in self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES].keys()
+        ]
         if len(all_valid_entities) == 0:
             return self.async_abort(reason="no_valid_entities")
 
         return self.async_show_form(
             step_id="new",
-            data_schema=vol.Schema({
-                vol.Required(CONF_ENTITY_ID): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        include_entities=all_valid_entities
-                    )
-                ),
-            })
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_ENTITY_ID): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            include_entities=all_valid_entities
+                        )
+                    ),
+                }
+            ),
         )
 
-    async def async_step_remove(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_remove(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         if user_input is not None:
             entry_data = DEFAULT_ENTRY_DATA | self.general_settings
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES])
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(
+                self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES]
+            )
             entry_data[CONF_KNXSYNC_SYNCED_ENTITIES].pop(user_input[CONF_ENTITY_ID])
             _LOGGER.debug(f"Saving new config: {entry_data}")
             self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data = entry_data,
-                title = "KNXSync"
+                self.config_entry, data=entry_data, title="KNXSync"
             )
             return self.async_create_entry(title="", data={})
 
@@ -132,18 +148,22 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="remove",
-            data_schema=vol.Schema({
-                vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=synced_entities,
-                        mode=selector.SelectSelectorMode.DROPDOWN
-                    )
-                ),
-            }),
-            last_step=True
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=synced_entities,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                }
+            ),
+            last_step=True,
         )
 
-    async def async_step_edit(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_edit(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         if user_input is not None:
             domain = get_domain(user_input[CONF_ENTITY_ID])
             self.selected_entity_id = user_input[CONF_ENTITY_ID]
@@ -160,105 +180,232 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="edit",
-            data_schema=vol.Schema({
-                vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=synced_entities,
-                        mode=selector.SelectSelectorMode.DROPDOWN
-                    )
-                ),
-            })
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=synced_entities,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                }
+            ),
         )
 
-    async def async_step_light(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_light(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         if user_input is not None:
             entry_data = DEFAULT_ENTRY_DATA | self.general_settings
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES])
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id] = user_input
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(
+                self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES]
+            )
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][
+                self.selected_entity_id
+            ] = user_input
             _LOGGER.debug(f"Saving new config: {entry_data}")
             self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data = entry_data,
-                title = "KNXSync"
+                self.config_entry, data=entry_data, title="KNXSync"
             )
             return self.async_create_entry(title="", data={})
 
         data = KNXSyncEntityLightData()
         if not self.is_new_entity:
-            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id]
+            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][
+                self.selected_entity_id
+            ]
         _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
 
         return self.async_show_form(
             step_id="light",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_KNXSYNC_BASE_ANSWER_READS, description={"suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)}): selector.BooleanSelector(),
-                vol.Optional(CONF_ADDRESS, description={"suggested_value": data.get(CONF_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(CONF_STATE_ADDRESS, description={"suggested_value": data.get(CONF_STATE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(LightSchema.CONF_BRIGHTNESS_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF, description={"suggested_value": data.get(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF)}): selector.BooleanSelector(),
-                vol.Optional(LightSchema.CONF_COLOR_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(LightSchema.CONF_COLOR_STATE_ADDRESS, description={"suggested_value": data.get(LightSchema.CONF_COLOR_STATE_ADDRESS)}): selector.TextSelector()
-            }),
-            last_step=True
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_KNXSYNC_BASE_ANSWER_READS,
+                        description={
+                            "suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)
+                        },
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_ADDRESS,
+                        description={"suggested_value": data.get(CONF_ADDRESS)},
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_STATE_ADDRESS,
+                        description={"suggested_value": data.get(CONF_STATE_ADDRESS)},
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        LightSchema.CONF_BRIGHTNESS_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                LightSchema.CONF_BRIGHTNESS_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF,
+                        description={
+                            "suggested_value": data.get(
+                                CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
+                            )
+                        },
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        LightSchema.CONF_COLOR_ADDRESS,
+                        description={
+                            "suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        LightSchema.CONF_COLOR_STATE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                LightSchema.CONF_COLOR_STATE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                }
+            ),
+            last_step=True,
         )
 
-    async def async_step_climate(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_climate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         if user_input is not None:
             entry_data = DEFAULT_ENTRY_DATA | self.general_settings
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES])
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id] = user_input
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(
+                self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES]
+            )
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][
+                self.selected_entity_id
+            ] = user_input
             _LOGGER.debug(f"Saving new config: {entry_data}")
             self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data = entry_data,
-                title = "KNXSync"
+                self.config_entry, data=entry_data, title="KNXSync"
             )
             return self.async_create_entry(title="", data={})
 
         data = KNXSyncEntityClimateData()
         if not self.is_new_entity:
-            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id]
+            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][
+                self.selected_entity_id
+            ]
         _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
 
         return self.async_show_form(
             step_id="climate",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_KNXSYNC_BASE_ANSWER_READS, description={"suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)}): selector.BooleanSelector(),
-                vol.Optional(ClimateSchema.CONF_TEMPERATURE_ADDRESS, description={"suggested_value": data.get(ClimateSchema.CONF_TEMPERATURE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS, description={"suggested_value": data.get(ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS, description={"suggested_value": data.get(ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(ClimateSchema.CONF_OPERATION_MODE_ADDRESS, description={"suggested_value": data.get(ClimateSchema.CONF_OPERATION_MODE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS, description={"suggested_value": data.get(ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS, description={"suggested_value": data.get(ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS)}): selector.TextSelector(),
-                vol.Optional(ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS, description={"suggested_value": data.get(ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS)}): selector.TextSelector()
-            }),
-            last_step=True
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_KNXSYNC_BASE_ANSWER_READS,
+                        description={
+                            "suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)
+                        },
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        ClimateSchema.CONF_TEMPERATURE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                ClimateSchema.CONF_TEMPERATURE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        ClimateSchema.CONF_OPERATION_MODE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                ClimateSchema.CONF_OPERATION_MODE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS,
+                        description={
+                            "suggested_value": data.get(
+                                ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS
+                            )
+                        },
+                    ): selector.TextSelector(),
+                }
+            ),
+            last_step=True,
         )
 
-    async def async_step_binary_sensor(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_binary_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         if user_input is not None:
             entry_data = DEFAULT_ENTRY_DATA | self.general_settings
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES])
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id] = user_input
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(
+                self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES]
+            )
+            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][
+                self.selected_entity_id
+            ] = user_input
             _LOGGER.debug(f"Saving new config: {entry_data}")
             self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data = entry_data,
-                title = "KNXSync"
+                self.config_entry, data=entry_data, title="KNXSync"
             )
             return self.async_create_entry(title="", data={})
 
         data = KNXSyncEntityBinarySensorData()
         if not self.is_new_entity:
-            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][self.selected_entity_id]
+            data = self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES][
+                self.selected_entity_id
+            ]
         _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
 
         return self.async_show_form(
             step_id="binary_sensor",
-            data_schema=vol.Schema({
-                # vol.Optional(CONF_KNXSYNC_BASE_ANSWER_READS, description={"suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)}): selector.BooleanSelector(),
-                vol.Optional(CONF_STATE_ADDRESS, description={"suggested_value": data.get(CONF_STATE_ADDRESS)}): selector.TextSelector(),
-            }),
-            last_step=True
+            data_schema=vol.Schema(
+                {
+                    # vol.Optional(CONF_KNXSYNC_BASE_ANSWER_READS, description={"suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)}): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_STATE_ADDRESS,
+                        description={"suggested_value": data.get(CONF_STATE_ADDRESS)},
+                    ): selector.TextSelector(),
+                }
+            ),
+            last_step=True,
         )
