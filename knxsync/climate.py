@@ -2,7 +2,12 @@ import logging
 
 from typing import Final
 
-from .const import DOMAIN, TELEGRAMTYPE_READ, TELEGRAMTYPE_WRITE
+from .const import (
+    KNXSyncEntityClimateData,
+    DOMAIN,
+    TELEGRAMTYPE_READ,
+    TELEGRAMTYPE_WRITE,
+)
 from .base import SyncedEntity
 
 from homeassistant.core import Event, HomeAssistant
@@ -25,7 +30,7 @@ from homeassistant.components.knx import (
     SERVICE_KNX_ATTR_RESPONSE,
     SERVICE_KNX_ATTR_TYPE,
 )
-from homeassistant.components.knx.const import KNX_ADDRESS, CONTROLLER_MODES
+from homeassistant.components.knx.const import KNX_ADDRESS
 from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
 from xknx.dpt.dpt_hvac_mode import DPTHVACContrMode, HVACControllerMode
 from xknx.dpt.payload import DPTArray
@@ -56,39 +61,38 @@ def xknx_to_ha_controller_mode(knx: HVACControllerMode) -> HVACMode:
 
 
 class SyncedClimate(SyncedEntity):
-    temperature_address: list[str] | None
-    target_temperature_address: list[str] | None
-    target_temperature_state_address: list[str] | None
-    operation_mode_address: list[str] | None
-    operation_mode_state_address: list[str] | None
-    controller_mode_address: list[str] | None
-    controller_mode_state_address: list[str] | None
+    temperature_address: list[str]
+    target_temperature_address: list[str]
+    target_temperature_state_address: list[str]
+    operation_mode_address: list[str]
+    operation_mode_state_address: list[str]
+    controller_mode_address: list[str]
+    controller_mode_state_address: list[str]
 
-    def __init__(self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        synced_entity_id: str,
+        entity_config: KNXSyncEntityClimateData,
+    ):
         super().__init__(hass, synced_entity_id, entity_config)
 
         _LOGGER.debug(f"Setting up synced climate '{self.synced_entity_id}'")
 
+        self._set_value_from_config(ClimateSchema.CONF_TEMPERATURE_ADDRESS, list())
         self._set_value_from_config(
-            entity_config, ClimateSchema.CONF_TEMPERATURE_ADDRESS
+            ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS, list()
         )
         self._set_value_from_config(
-            entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS
+            ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS, list()
         )
+        self._set_value_from_config(ClimateSchema.CONF_OPERATION_MODE_ADDRESS, list())
         self._set_value_from_config(
-            entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
+            ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS, list()
         )
+        self._set_value_from_config(ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS, list())
         self._set_value_from_config(
-            entity_config, ClimateSchema.CONF_OPERATION_MODE_ADDRESS
-        )
-        self._set_value_from_config(
-            entity_config, ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS
-        )
-        self._set_value_from_config(
-            entity_config, ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS
-        )
-        self._set_value_from_config(
-            entity_config, ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS
+            ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS, list()
         )
 
     async def async_got_telegram(self, event: Event) -> None:
@@ -152,16 +156,16 @@ class SyncedClimate(SyncedEntity):
         _LOGGER.debug(f"new state: {self.state}")
 
         if (
-            self.temperature_address is not None
+            self.temperature_address
             and ATTR_CURRENT_TEMPERATURE in self.state.attributes.keys()
         ):
             await self._send_current_temperature()
         if (
-            self.target_temperature_state_address is not None
+            self.target_temperature_state_address
             and ATTR_TEMPERATURE in self.state.attributes.keys()
         ):
             await self._send_setpoint_temperature()
-        if self.controller_mode_state_address is not None:
+        if self.controller_mode_state_address:
             await self._send_controller_mode()
 
     async def _send_current_temperature(self, response: bool = False) -> None:

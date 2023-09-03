@@ -2,10 +2,10 @@
     "config": {
         "step": {},
         "error": {
-            "unknown": "[%key:common::config_flow::error::unknown%]"
+            "unknown": "Unknown error."
         },
         "abort": {
-            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+            "already_configured": "KNXSync is already enabled. Use 'configure' instead."
         }
     },
     "options": {
@@ -78,13 +78,13 @@
                 },
                 "data_description": {
                     "answer_reads": "Whether to answer GroupValueRead requests to state addresses with the last sent state.",
-                    "temperature_address": "DPT-9.001 | CLimate will report its current temperature.",
+                    "temperature_address": "DPT-9.001 | Climate will report its current temperature.",
                     "target_temperature_address": "DPT-9.001 | Climate will set setpoint temperature.",
                     "target_temperature_state_address": "DPT-9.001 | Climate will report setpoint temperature.",
                     "operation_mode_address": "DPT-20.102 | Climate will set its operation mode.",
                     "operation_mode_state_address": "DPT-20.102 | Climate will report its operation mode.",
                     "controller_mode_address": "DPT-20.105 | Climate will set its controller mode.",
-                    "controller_mode_state_address": "DPT-20.105 |Climate will report its controller mode."
+                    "controller_mode_state_address": "DPT-20.105 | Climate will report its controller mode."
                 }
             },
             "binary_sensor": {
@@ -100,10 +100,10 @@
         },
         "error": {
             "invalid_ga": "Invalid group address",
-            "unknown": "[%key:common::config_flow::error::unknown%]"
+            "unknown": "Unknown error"
         },
         "abort": {
-            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+            "already_configured": "KNXSync is already enabled. Use 'configure' instead.",
             "not_supported": "Domain is not supported"
         }
     }

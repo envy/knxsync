@@ -35,13 +35,13 @@ _LOGGER = logging.getLogger(DOMAIN)
 
 
 class SyncedLight(SyncedEntity):
-    address: list[str] | None
-    state_address: list[str] | None
-    brightness_address: list[str] | None
-    brightness_state_address: list[str] | None
-    zero_brightness_when_off: bool | None
-    color_address: list[str] | None
-    color_state_address: list[str] | None
+    address: list[str]
+    state_address: list[str]
+    brightness_address: list[str]
+    brightness_state_address: list[str]
+    zero_brightness_when_off: bool
+    color_address: list[str]
+    color_state_address: list[str]
 
     def __init__(
         self,
@@ -52,17 +52,13 @@ class SyncedLight(SyncedEntity):
         super().__init__(hass, synced_entity_id, entity_config)
         _LOGGER.debug(f"Setting up synced light '{self.synced_entity_id}'")
 
-        self._set_value_from_config(entity_config, CONF_ADDRESS)
-        self._set_value_from_config(entity_config, CONF_STATE_ADDRESS)
-        self._set_value_from_config(entity_config, LightSchema.CONF_BRIGHTNESS_ADDRESS)
-        self._set_value_from_config(
-            entity_config, LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS
-        )
-        self._set_value_from_config(
-            entity_config, CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
-        )
-        self._set_value_from_config(entity_config, LightSchema.CONF_COLOR_ADDRESS)
-        self._set_value_from_config(entity_config, LightSchema.CONF_COLOR_STATE_ADDRESS)
+        self._set_value_from_config(CONF_ADDRESS, list())
+        self._set_value_from_config(CONF_STATE_ADDRESS, list())
+        self._set_value_from_config(LightSchema.CONF_BRIGHTNESS_ADDRESS, list())
+        self._set_value_from_config(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS, list())
+        self._set_value_from_config(CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF, False)
+        self._set_value_from_config(LightSchema.CONF_COLOR_ADDRESS, list())
+        self._set_value_from_config(LightSchema.CONF_COLOR_STATE_ADDRESS, list())
 
     async def async_got_telegram(self, event: Event) -> None:
         data = event.data
@@ -141,17 +137,14 @@ class SyncedLight(SyncedEntity):
             return
         self.state = data["new_state"]
 
-        if self.state_address is not None:
+        if self.state_address:
             await self._send_onoff()
         if (
-            self.brightness_state_address is not None
+            self.brightness_state_address
             and ATTR_BRIGHTNESS in self.state.attributes.keys()
         ):
             await self._send_brightness()
-        if (
-            self.color_state_address is not None
-            and ATTR_RGB_COLOR in self.state.attributes.keys()
-        ):
+        if self.color_state_address and ATTR_RGB_COLOR in self.state.attributes.keys():
             await self._send_color()
 
     async def async_setup_events(self) -> None:

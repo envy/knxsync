@@ -10,6 +10,7 @@ from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT
 from homeassistant.components.climate import DOMAIN as DOMAIN_CLIMATE
 from homeassistant.components.knx.const import DOMAIN as DOMAIN_KNX, CONF_STATE_ADDRESS
 from homeassistant.components.knx.schema import LightSchema, ClimateSchema
+from homeassistant.components.knx.project import KNXProject
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import entity_registry, selector
 
@@ -23,7 +24,7 @@ from .const import (
     KNXSyncEntityLightData,
     KNXSyncEntityClimateData,
 )
-from .helpers import get_domain
+from .helpers import get_domain, async_validate_light_config
 
 import voluptuous as vol
 
@@ -75,9 +76,7 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
         self.is_new_entity = False
         self.selected_entity_id = None
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, _: dict[str, Any] | None = None) -> FlowResult:
         self.current_config = self.config_entry.data
         return self.async_show_menu(
             step_id="init", menu_options=["new", "remove", "edit"]
@@ -117,6 +116,7 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="new",
+            last_step=False,
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_ENTITY_ID): selector.EntitySelector(
@@ -148,6 +148,7 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="remove",
+            last_step=True,
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
@@ -158,7 +159,6 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 }
             ),
-            last_step=True,
         )
 
     async def async_step_edit(
@@ -180,6 +180,7 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="edit",
+            last_step=False,
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_ENTITY_ID): selector.SelectSelector(
@@ -195,19 +196,22 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_light(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors = {}
         if user_input is not None:
-            entry_data = DEFAULT_ENTRY_DATA | self.general_settings
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(
-                self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES]
-            )
-            entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][
-                self.selected_entity_id
-            ] = user_input
-            _LOGGER.debug(f"Saving new config: {entry_data}")
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=entry_data, title="KNXSync"
-            )
-            return self.async_create_entry(title="", data={})
+            errors = await async_validate_light_config(user_input)
+            if not errors:
+                entry_data = DEFAULT_ENTRY_DATA | self.general_settings
+                entry_data[CONF_KNXSYNC_SYNCED_ENTITIES] = deepcopy(
+                    self.current_config[CONF_KNXSYNC_SYNCED_ENTITIES]
+                )
+                entry_data[CONF_KNXSYNC_SYNCED_ENTITIES][
+                    self.selected_entity_id
+                ] = user_input
+                _LOGGER.debug(f"Saving new config: {entry_data}")
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data=entry_data, title="KNXSync"
+                )
+                return self.async_create_entry(title="", data={})
 
         data = KNXSyncEntityLightData()
         if not self.is_new_entity:
@@ -216,8 +220,33 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
             ]
         _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
 
+        project: KNXProject = self.hass.data[DOMAIN_KNX].project
+        dpt1_gas = [
+            selector.SelectOptionDict(
+                value=ga.address, label=f"{ga.address} - {ga.name}"
+            )
+            for ga in project.group_addresses.values()
+            if ga.dpt_main == 1
+        ]
+        dpt5_gas = [
+            selector.SelectOptionDict(
+                value=ga.address, label=f"{ga.address} - {ga.name}"
+            )
+            for ga in project.group_addresses.values()
+            if ga.dpt_main == 5
+        ]
+        dpt232_600_gas = [
+            selector.SelectOptionDict(
+                value=ga.address, label=f"{ga.address} - {ga.name}"
+            )
+            for ga in project.group_addresses.values()
+            if ga.dpt_main == 232 and ga.dpt_sub == 600
+        ]
+
         return self.async_show_form(
             step_id="light",
+            errors=errors,
+            last_step=True,
             data_schema=vol.Schema(
                 {
                     vol.Optional(
@@ -229,11 +258,25 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_ADDRESS,
                         description={"suggested_value": data.get(CONF_ADDRESS)},
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt1_gas,
+                        )
+                    ),
                     vol.Optional(
                         CONF_STATE_ADDRESS,
                         description={"suggested_value": data.get(CONF_STATE_ADDRESS)},
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt1_gas,
+                        )
+                    ),
                     vol.Optional(
                         LightSchema.CONF_BRIGHTNESS_ADDRESS,
                         description={
@@ -241,7 +284,14 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 LightSchema.CONF_BRIGHTNESS_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt5_gas,
+                        )
+                    ),
                     vol.Optional(
                         LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS,
                         description={
@@ -249,7 +299,14 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt5_gas,
+                        )
+                    ),
                     vol.Optional(
                         CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF,
                         description={
@@ -263,7 +320,14 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                         description={
                             "suggested_value": data.get(LightSchema.CONF_COLOR_ADDRESS)
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt232_600_gas,
+                        )
+                    ),
                     vol.Optional(
                         LightSchema.CONF_COLOR_STATE_ADDRESS,
                         description={
@@ -271,10 +335,16 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 LightSchema.CONF_COLOR_STATE_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt232_600_gas,
+                        )
+                    ),
                 }
             ),
-            last_step=True,
         )
 
     async def async_step_climate(
@@ -301,8 +371,25 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
             ]
         _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
 
+        project: KNXProject = self.hass.data[DOMAIN_KNX].project
+        dpt9_gas = [
+            selector.SelectOptionDict(
+                value=ga.address, label=f"{ga.address} - {ga.name}"
+            )
+            for ga in project.group_addresses.values()
+            if ga.dpt_main == 9
+        ]
+        dpt20_gas = [
+            selector.SelectOptionDict(
+                value=ga.address, label=f"{ga.address} - {ga.name}"
+            )
+            for ga in project.group_addresses.values()
+            if ga.dpt_main == 20
+        ]
+
         return self.async_show_form(
             step_id="climate",
+            last_step=True,
             data_schema=vol.Schema(
                 {
                     vol.Optional(
@@ -318,7 +405,14 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 ClimateSchema.CONF_TEMPERATURE_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt9_gas,
+                        )
+                    ),
                     vol.Optional(
                         ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS,
                         description={
@@ -326,7 +420,14 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt9_gas,
+                        )
+                    ),
                     vol.Optional(
                         ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS,
                         description={
@@ -334,23 +435,44 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
-                    vol.Optional(
-                        ClimateSchema.CONF_OPERATION_MODE_ADDRESS,
-                        description={
-                            "suggested_value": data.get(
-                                ClimateSchema.CONF_OPERATION_MODE_ADDRESS
-                            )
-                        },
-                    ): selector.TextSelector(),
-                    vol.Optional(
-                        ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS,
-                        description={
-                            "suggested_value": data.get(
-                                ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS
-                            )
-                        },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt9_gas,
+                        )
+                    ),
+                    # vol.Optional(
+                    #     ClimateSchema.CONF_OPERATION_MODE_ADDRESS,
+                    #     description={
+                    #         "suggested_value": data.get(
+                    #             ClimateSchema.CONF_OPERATION_MODE_ADDRESS
+                    #         )
+                    #     },
+                    # ): selector.SelectSelector(
+                    #     selector.SelectSelectorConfig(
+                    #         mode=selector.SelectSelectorMode.DROPDOWN,
+                    #         multiple=True,
+                    #         custom_value=True,
+                    #         options=dpt20_gas,
+                    #     )
+                    # ),
+                    # vol.Optional(
+                    #     ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS,
+                    #     description={
+                    #         "suggested_value": data.get(
+                    #             ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS
+                    #         )
+                    #     },
+                    # ): selector.SelectSelector(
+                    #     selector.SelectSelectorConfig(
+                    #         mode=selector.SelectSelectorMode.DROPDOWN,
+                    #         multiple=True,
+                    #         custom_value=True,
+                    #         options=dpt20_gas,
+                    #     )
+                    # ),
                     vol.Optional(
                         ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS,
                         description={
@@ -358,7 +480,14 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt20_gas,
+                        )
+                    ),
                     vol.Optional(
                         ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS,
                         description={
@@ -366,10 +495,16 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                                 ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS
                             )
                         },
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt20_gas,
+                        )
+                    ),
                 }
             ),
-            last_step=True,
         )
 
     async def async_step_binary_sensor(
@@ -395,17 +530,32 @@ class KNXSyncOptionsFlowHandler(config_entries.OptionsFlow):
                 self.selected_entity_id
             ]
         _LOGGER.debug(f"Config for {self.selected_entity_id}: {data}")
+        project: KNXProject = self.hass.data[DOMAIN_KNX].project
+        dpt1_gas = [
+            selector.SelectOptionDict(
+                value=ga.address, label=f"{ga.address} - {ga.name}"
+            )
+            for ga in project.group_addresses.values()
+            if ga.dpt_main == 1
+        ]
 
         return self.async_show_form(
             step_id="binary_sensor",
+            last_step=True,
             data_schema=vol.Schema(
                 {
                     # vol.Optional(CONF_KNXSYNC_BASE_ANSWER_READS, description={"suggested_value": data.get(CONF_KNXSYNC_BASE_ANSWER_READS)}): selector.BooleanSelector(),
                     vol.Optional(
                         CONF_STATE_ADDRESS,
                         description={"suggested_value": data.get(CONF_STATE_ADDRESS)},
-                    ): selector.TextSelector(),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            multiple=True,
+                            custom_value=True,
+                            options=dpt1_gas,
+                        )
+                    ),
                 }
             ),
-            last_step=True,
         )

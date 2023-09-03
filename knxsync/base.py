@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from .const import KNXSyncEntityBaseData, DOMAIN, CONF_KNXSYNC_BASE_ANSWER_READS
 from .helpers import parse_group_addresses
@@ -28,11 +29,13 @@ class SyncedEntity:
     ) -> None:
         self.hass = hass
         self.synced_entity_id = synced_entity_id
-        self.answer_reads = entity_config.get(CONF_KNXSYNC_BASE_ANSWER_READS, False)
+        self._config = entity_config
         self.state = self.hass.states.get(self.synced_entity_id)
         self._remove_listener = async_track_state_change_event(
             self.hass, [self.synced_entity_id], self.async_state_changed
         )
+
+        self._set_value_from_config(CONF_KNXSYNC_BASE_ANSWER_READS, False)
 
     async def async_got_telegram(self, _: Event) -> None:
         pass
@@ -49,23 +52,17 @@ class SyncedEntity:
             self._remove_listener()
             self._remove_listener = None
 
-    def _set_value_from_config(self, config: dict, config_key: str) -> None:
-        if config_key in config.keys():
-            setattr(self, config_key, parse_group_addresses(config[config_key]))
-            _LOGGER.debug(f"{self.synced_entity_id} <- {getattr(self, config_key)}")
-        else:
-            setattr(self, config_key, None)
+    def _set_value_from_config(self, config_key: str, default: Any) -> None:
+        setattr(self, config_key, self._config.get(config_key, default))
+        _LOGGER.debug(f"{self.synced_entity_id} <- {getattr(self, config_key)}")
 
     async def _register_receiver(self, attr: str) -> None:
         v = getattr(self, attr)
-        if v is not None:
-            for address in v:
-                _LOGGER.debug(
-                    f"registering receiver {address} -> {self.synced_entity_id}"
-                )
-                await self.hass.services.async_call(
-                    DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
-                )
+        for address in v:
+            _LOGGER.debug(f"registering receiver {address} -> {self.synced_entity_id}")
+            await self.hass.services.async_call(
+                DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
+            )
 
     def shutdown(self, config_entry: ConfigEntry) -> None:
         _LOGGER.debug("Shutting down %s", self.synced_entity_id)
