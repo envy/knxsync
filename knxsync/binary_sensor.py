@@ -12,6 +12,7 @@ from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.components.knx import (
     DOMAIN as DOMAIN_KNX,
     SERVICE_KNX_ATTR_REMOVE,
+    SERVICE_KNX_ATTR_TYPE,
     SERVICE_KNX_EXPOSURE_REGISTER,
 )
 from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
@@ -21,18 +22,17 @@ _LOGGER = logging.getLogger(DOMAIN)
 
 
 class SyncedBinarySensor(SyncedEntity):
-    def __init__(self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict):
+    def __init__(
+        self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict
+    ) -> None:
         super().__init__(hass, synced_entity_id, entity_config)
         self.state_address: [str] | None = None
         _LOGGER.debug("Setting up synced binary sensor '%s'", self.synced_entity_id)
 
-        if CONF_STATE_ADDRESS in entity_config.keys():
-            self.state_address = parse_group_addresses(
-                entity_config[CONF_STATE_ADDRESS]
-            )
-            _LOGGER.debug("%s -> %s", self.synced_entity_id, self.state_address)
+        self._set_value_from_config(entity_config, CONF_STATE_ADDRESS)
 
     async def async_setup_events(self) -> None:
+        # This directly configures knx native expose
         if self.state_address is not None:
             for address in self.state_address:
                 await self.hass.services.async_call(
@@ -40,7 +40,7 @@ class SyncedBinarySensor(SyncedEntity):
                     SERVICE_KNX_EXPOSURE_REGISTER,
                     {
                         KNX_ADDRESS: address,
-                        ExposeSchema.CONF_KNX_EXPOSE_TYPE: ExposeSchema.CONF_KNX_EXPOSE_BINARY,
+                        SERVICE_KNX_ATTR_TYPE: ExposeSchema.CONF_KNX_EXPOSE_BINARY,
                         CONF_ENTITY_ID: self.synced_entity_id,
                     },
                 )

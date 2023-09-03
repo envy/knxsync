@@ -7,7 +7,6 @@ from .const import (
     CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF,
 )
 from .base import SyncedEntity
-from .helpers import parse_group_addresses
 
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.const import (
@@ -47,47 +46,17 @@ class SyncedLight(SyncedEntity):
         self.color_state_address: [str] | None = None
         _LOGGER.debug(f"Setting up synced light '{self.synced_entity_id}'")
 
-        if CONF_ADDRESS in entity_config.keys():
-            self.address = parse_group_addresses(entity_config[CONF_ADDRESS])
-            _LOGGER.debug(f"{self.synced_entity_id} <- {self.address}")
-
-        if CONF_STATE_ADDRESS in entity_config.keys():
-            self.state_address = parse_group_addresses(
-                entity_config[CONF_STATE_ADDRESS]
-            )
-            _LOGGER.debug(f"{self.synced_entity_id} -> {self.state_address}")
-
-        if LightSchema.CONF_BRIGHTNESS_ADDRESS in entity_config.keys():
-            self.brightness_address = parse_group_addresses(
-                entity_config[LightSchema.CONF_BRIGHTNESS_ADDRESS]
-            )
-            _LOGGER.debug(f"{self.synced_entity_id} <- {self.brightness_address}")
-
-        if LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS in entity_config.keys():
-            self.brightness_state_address = parse_group_addresses(
-                entity_config[LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS]
-            )
-            _LOGGER.debug(f"{self.synced_entity_id} -> {self.brightness_state_address}")
-
-        if CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF in entity_config.keys():
-            self.zero_brightness_when_off = entity_config[
-                CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
-            ]
-            _LOGGER.debug(
-                f"{self.synced_entity_id} will also report off as 0% brightness."
-            )
-
-        if LightSchema.CONF_COLOR_ADDRESS in entity_config.keys():
-            self.color_address = parse_group_addresses(
-                entity_config[LightSchema.CONF_COLOR_ADDRESS]
-            )
-            _LOGGER.debug(f"{self.synced_entity_id} <- {self.color_address}")
-
-        if LightSchema.CONF_COLOR_STATE_ADDRESS in entity_config.keys():
-            self.color_state_address = parse_group_addresses(
-                entity_config[LightSchema.CONF_COLOR_STATE_ADDRESS]
-            )
-            _LOGGER.debug(f"{self.synced_entity_id} -> {self.color_state_address}")
+        self._set_value_from_config(entity_config, CONF_ADDRESS)
+        self._set_value_from_config(entity_config, CONF_STATE_ADDRESS)
+        self._set_value_from_config(entity_config, LightSchema.CONF_BRIGHTNESS_ADDRESS)
+        self._set_value_from_config(
+            entity_config, LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS
+        )
+        self._set_value_from_config(
+            entity_config, CONF_KNXSYNC_LIGHT_ZERO_BRIGHTNESS_WHEN_OFF
+        )
+        self._set_value_from_config(entity_config, LightSchema.CONF_COLOR_ADDRESS)
+        self._set_value_from_config(entity_config, LightSchema.CONF_COLOR_STATE_ADDRESS)
 
     async def async_got_telegram(self, event: Event) -> None:
         data = event.data
@@ -180,60 +149,17 @@ class SyncedLight(SyncedEntity):
             await self._send_color()
 
     async def async_setup_events(self) -> None:
-        if self.address is not None:
-            for address in self.address:
-                _LOGGER.debug(
-                    f"registering receiver {address} -> {self.synced_entity_id}"
-                )
-                await self.hass.services.async_call(
-                    DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
-                )
-
-        if self.brightness_address is not None:
-            for address in self.brightness_address:
-                _LOGGER.debug(
-                    f"registering receiver {address} -> {self.synced_entity_id}"
-                )
-                await self.hass.services.async_call(
-                    DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
-                )
-
-        if self.color_address is not None:
-            for address in self.color_address:
-                _LOGGER.debug(
-                    f"registering receiver {address} -> {self.synced_entity_id}"
-                )
-                await self.hass.services.async_call(
-                    DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
-                )
+        await self._register_receiver(CONF_ADDRESS)
+        await self._register_receiver(LightSchema.CONF_BRIGHTNESS_ADDRESS)
+        await self._register_receiver(LightSchema.CONF_COLOR_ADDRESS)
 
         if not self.answer_reads:
             return
+
         # Register for potential reads
-        if self.state_address is not None:
-            for address in self.state_address:
-                _LOGGER.debug(
-                    f"registering receiver {address} <- {self.synced_entity_id}"
-                )
-                await self.hass.services.async_call(
-                    DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
-                )
-        if self.brightness_state_address is not None:
-            for address in self.brightness_state_address:
-                _LOGGER.debug(
-                    f"registering receiver {address} <- {self.synced_entity_id}"
-                )
-                await self.hass.services.async_call(
-                    DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
-                )
-        if self.color_state_address is not None:
-            for address in self.color_state_address:
-                _LOGGER.debug(
-                    f"registering receiver {address} <- {self.synced_entity_id}"
-                )
-                await self.hass.services.async_call(
-                    DOMAIN_KNX, SERVICE_KNX_EVENT_REGISTER, {KNX_ADDRESS: address}
-                )
+        await self._register_receiver(CONF_STATE_ADDRESS)
+        await self._register_receiver(LightSchema.CONF_BRIGHTNESS_STATE_ADDRESS)
+        await self._register_receiver(LightSchema.CONF_COLOR_STATE_ADDRESS)
 
     async def _send_onoff(self, response: bool = False) -> None:
         if self.state == None:

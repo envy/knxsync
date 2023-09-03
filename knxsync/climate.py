@@ -1,8 +1,9 @@
 import logging
 
+from typing import Final
+
 from .const import DOMAIN, TELEGRAMTYPE_READ, TELEGRAMTYPE_WRITE
 from .base import SyncedEntity
-from .helpers import set_value_from_config, register_receiver
 
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.const import ATTR_ENTITY_ID
@@ -24,14 +25,14 @@ from homeassistant.components.knx import (
     SERVICE_KNX_ATTR_RESPONSE,
     SERVICE_KNX_ATTR_TYPE,
 )
-from homeassistant.components.knx.const import KNX_ADDRESS
+from homeassistant.components.knx.const import KNX_ADDRESS, CONTROLLER_MODES
 from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
 from xknx.dpt.dpt_hvac_mode import DPTHVACContrMode, HVACControllerMode
 from xknx.dpt.payload import DPTArray
 
 _LOGGER = logging.getLogger(DOMAIN)
 
-HA_HVAC_CONTROLLER_MODE_MAP = {
+HA_HVAC_CONTROLLER_MODE_MAP: Final = {
     HVACMode.AUTO: HVACControllerMode.AUTO,
     HVACMode.COOL: HVACControllerMode.COOL,
     HVACMode.DRY: HVACControllerMode.DRY,
@@ -66,26 +67,26 @@ class SyncedClimate(SyncedEntity):
         self.controller_mode_state_address: [str] | None = None
         _LOGGER.debug(f"Setting up synced climate '{self.synced_entity_id}'")
 
-        set_value_from_config(
-            self, entity_config, ClimateSchema.CONF_TEMPERATURE_ADDRESS
+        self._set_value_from_config(
+            entity_config, ClimateSchema.CONF_TEMPERATURE_ADDRESS
         )
-        set_value_from_config(
-            self, entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS
+        self._set_value_from_config(
+            entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS
         )
-        set_value_from_config(
-            self, entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
+        self._set_value_from_config(
+            entity_config, ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
         )
-        set_value_from_config(
-            self, entity_config, ClimateSchema.CONF_OPERATION_MODE_ADDRESS
+        self._set_value_from_config(
+            entity_config, ClimateSchema.CONF_OPERATION_MODE_ADDRESS
         )
-        set_value_from_config(
-            self, entity_config, ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS
+        self._set_value_from_config(
+            entity_config, ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS
         )
-        set_value_from_config(
-            self, entity_config, ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS
+        self._set_value_from_config(
+            entity_config, ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS
         )
-        set_value_from_config(
-            self, entity_config, ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS
+        self._set_value_from_config(
+            entity_config, ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS
         )
 
     async def async_got_telegram(self, event: Event) -> None:
@@ -113,7 +114,7 @@ class SyncedClimate(SyncedEntity):
                     f"Setting operation mode of {self.synced_entity_id} <- {address}"
                 )
                 if self.state != None:
-                    if value not in self.state.attributes[ATTR_HVAC_MODES]:
+                    if value in self.state.attributes[ATTR_HVAC_MODES]:
                         await self.hass.services.async_call(
                             DOMAIN_CLIMATE,
                             SERVICE_SET_HVAC_MODE,
@@ -223,17 +224,17 @@ class SyncedClimate(SyncedEntity):
             )
 
     async def async_setup_events(self) -> None:
-        await register_receiver(self, ClimateSchema.CONF_TEMPERATURE_ADDRESS)
-        await register_receiver(self, ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS)
-        await register_receiver(self, ClimateSchema.CONF_OPERATION_MODE_ADDRESS)
-        await register_receiver(self, ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS)
+        await self._register_receiver(ClimateSchema.CONF_TEMPERATURE_ADDRESS)
+        await self._register_receiver(ClimateSchema.CONF_TARGET_TEMPERATURE_ADDRESS)
+        await self._register_receiver(ClimateSchema.CONF_OPERATION_MODE_ADDRESS)
+        await self._register_receiver(ClimateSchema.CONF_CONTROLLER_MODE_ADDRESS)
 
         if not self.answer_reads:
             return
-        # Register for potential reads
 
-        await register_receiver(
-            self, ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
+        # Register for potential reads
+        await self._register_receiver(
+            ClimateSchema.CONF_TARGET_TEMPERATURE_STATE_ADDRESS
         )
-        await register_receiver(self, ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS)
-        await register_receiver(self, ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS)
+        await self._register_receiver(ClimateSchema.CONF_OPERATION_MODE_STATE_ADDRESS)
+        await self._register_receiver(ClimateSchema.CONF_CONTROLLER_MODE_STATE_ADDRESS)
