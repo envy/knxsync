@@ -22,11 +22,12 @@ _LOGGER = logging.getLogger(DOMAIN)
 
 
 class SyncedBinarySensor(SyncedEntity):
+    state_address: list[str] | None
+
     def __init__(
         self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict
     ) -> None:
         super().__init__(hass, synced_entity_id, entity_config)
-        self.state_address: [str] | None = None
         _LOGGER.debug("Setting up synced binary sensor '%s'", self.synced_entity_id)
 
         self._set_value_from_config(entity_config, CONF_STATE_ADDRESS)

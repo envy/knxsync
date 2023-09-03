@@ -1,6 +1,7 @@
 import logging
 
 from .const import (
+    KNXSyncEntityLightData,
     DOMAIN,
     TELEGRAMTYPE_READ,
     TELEGRAMTYPE_WRITE,
@@ -26,7 +27,6 @@ from homeassistant.components.knx import (
     SERVICE_KNX_SEND,
     SERVICE_KNX_ATTR_PAYLOAD,
     SERVICE_KNX_ATTR_RESPONSE,
-    SERVICE_KNX_EVENT_REGISTER,
 )
 from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
@@ -35,15 +35,21 @@ _LOGGER = logging.getLogger(DOMAIN)
 
 
 class SyncedLight(SyncedEntity):
-    def __init__(self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict):
+    address: list[str] | None
+    state_address: list[str] | None
+    brightness_address: list[str] | None
+    brightness_state_address: list[str] | None
+    zero_brightness_when_off: bool | None
+    color_address: list[str] | None
+    color_state_address: list[str] | None
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        synced_entity_id: str,
+        entity_config: KNXSyncEntityLightData,
+    ):
         super().__init__(hass, synced_entity_id, entity_config)
-        self.address: [str] | None = None
-        self.state_address: [str] | None = None
-        self.brightness_address: [str] | None = None
-        self.brightness_state_address: [str] | None = None
-        self.zero_brightness_when_off: bool | None = None
-        self.color_address: [str] | None = None
-        self.color_state_address: [str] | None = None
         _LOGGER.debug(f"Setting up synced light '{self.synced_entity_id}'")
 
         self._set_value_from_config(entity_config, CONF_ADDRESS)

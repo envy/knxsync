@@ -18,30 +18,33 @@ class KNXSyncEntityBaseData(TypedDict, total=False):
 
 
 class KNXSyncEntityLightData(KNXSyncEntityBaseData):
-    address: str | None
-    state_address: str | None
-    brightness_address: str | None
-    brightness_state_address: str | None
+    address: list[str] | None
+    state_address: list[str] | None
+    brightness_address: list[str] | None
+    brightness_state_address: list[str] | None
     zero_brightness_when_off: bool | None
-    color_address: str | None
-    color_state_address: str | None
+    color_address: list[str] | None
+    color_state_address: list[str] | None
 
 
 class KNXSyncEntityClimateData(KNXSyncEntityBaseData):
-    temperature_address: str | None
-    target_temperature_address: str | None
-    target_temperature_state_address: str | None
-    operation_mode_address: str | None
+    temperature_address: list[str] | None
+    target_temperature_address: list[str] | None
+    target_temperature_state_address: list[str] | None
+    operation_mode_address: list[str] | None
     operation_mode_state_address: bool | None
-    controller_mode_address: str | None
-    controller_mode_state_address: str | None
+    controller_mode_address: list[str] | None
+    controller_mode_state_address: list[str] | None
 
 
 class KNXSyncEntityBinarySensorData(KNXSyncEntityBaseData):
-    state_address: str | None
+    state_address: list[str] | None
 
 
 class KNXSyncEntryData(TypedDict, total=False):
     synced_entities: Mapping[
-        str, KNXSyncEntityLightData | KNXSyncEntityBinarySensorData
+        str,
+        KNXSyncEntityLightData
+        | KNXSyncEntityClimateData
+        | KNXSyncEntityBinarySensorData,
     ]

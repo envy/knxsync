@@ -1,6 +1,6 @@
 import logging
 
-from .const import DOMAIN, CONF_KNXSYNC_BASE_ANSWER_READS
+from .const import KNXSyncEntityBaseData, DOMAIN, CONF_KNXSYNC_BASE_ANSWER_READS
 from .helpers import parse_group_addresses
 
 from homeassistant.config_entries import ConfigEntry
@@ -21,7 +21,10 @@ class SyncedEntity:
     answer_reads: bool
 
     def __init__(
-        self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict
+        self,
+        hass: HomeAssistant,
+        synced_entity_id: str,
+        entity_config: KNXSyncEntityBaseData,
     ) -> None:
         self.hass = hass
         self.synced_entity_id = synced_entity_id
@@ -50,6 +53,8 @@ class SyncedEntity:
         if config_key in config.keys():
             setattr(self, config_key, parse_group_addresses(config[config_key]))
             _LOGGER.debug(f"{self.synced_entity_id} <- {getattr(self, config_key)}")
+        else:
+            setattr(self, config_key, None)
 
     async def _register_receiver(self, attr: str) -> None:
         v = getattr(self, attr)

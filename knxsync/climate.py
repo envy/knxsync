@@ -56,15 +56,17 @@ def xknx_to_ha_controller_mode(knx: HVACControllerMode) -> HVACMode:
 
 
 class SyncedClimate(SyncedEntity):
+    temperature_address: list[str] | None
+    target_temperature_address: list[str] | None
+    target_temperature_state_address: list[str] | None
+    operation_mode_address: list[str] | None
+    operation_mode_state_address: list[str] | None
+    controller_mode_address: list[str] | None
+    controller_mode_state_address: list[str] | None
+
     def __init__(self, hass: HomeAssistant, synced_entity_id: str, entity_config: dict):
         super().__init__(hass, synced_entity_id, entity_config)
-        self.temperature_address: [str] | None = None
-        self.target_temperature_address: [str] | None = None
-        self.target_temperature_state_address: [str] | None = None
-        self.operation_mode_address: [str] | None = None
-        self.operation_mode_state_address: bool | None = None
-        self.controller_mode_address: [str] | None = None
-        self.controller_mode_state_address: [str] | None = None
+
         _LOGGER.debug(f"Setting up synced climate '{self.synced_entity_id}'")
 
         self._set_value_from_config(
