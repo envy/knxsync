@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from .const import KNXSyncEntityBaseData, DOMAIN, CONF_KNXSYNC_BASE_ANSWER_READS
+from .helpers import parse_group_addresses
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant
@@ -57,6 +58,11 @@ class SyncedEntity:
 
     async def _register_receiver(self, attr: str) -> None:
         v = getattr(self, attr)
+
+        if type(v) is str:
+            # Old style config, convert to list
+            v = parse_group_addresses(v)
+
         for address in v:
             _LOGGER.debug(f"registering receiver {address} -> {self.synced_entity_id}")
             await self.hass.services.async_call(
