@@ -1,12 +1,12 @@
 {
     "domain": "knxsync",
     "name": "KNXSync",
-    "documentation": "https://github.com/envy/knxsync",
-    "dependencies": ["knx"],
     "codeowners": ["@envy"],
-    "requirements": ["xknx"],
     "config_flow": true,
-    "version": "0.0.1",
+    "dependencies": ["knx"],
+    "documentation": "https://github.com/envy/knxsync",
     "iot_class": "calculated",
-    "loggers": ["knxsync"]
+    "loggers": ["knxsync"],
+    "requirements": ["xknx"],
+    "version": "0.0.1"
 }
