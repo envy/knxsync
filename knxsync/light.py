@@ -22,13 +22,14 @@ from homeassistant.components.light import (
     ATTR_RGB_COLOR,
     ATTR_BRIGHTNESS,
 )
-from homeassistant.components.knx import (
+from homeassistant.components.knx.const import (
     DOMAIN as DOMAIN_KNX,
     SERVICE_KNX_SEND,
     SERVICE_KNX_ATTR_PAYLOAD,
     SERVICE_KNX_ATTR_RESPONSE,
+    CONF_STATE_ADDRESS,
+    KNX_ADDRESS,
 )
-from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import LightSchema
 
 _LOGGER = logging.getLogger(DOMAIN)

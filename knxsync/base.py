@@ -2,16 +2,15 @@ import logging
 from typing import Any
 
 from .const import KNXSyncEntityBaseData, DOMAIN, CONF_KNXSYNC_BASE_ANSWER_READS
-from .helpers import parse_group_addresses
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.components.knx import (
+from homeassistant.components.knx.const import (
     DOMAIN as DOMAIN_KNX,
+    KNX_ADDRESS,
     SERVICE_KNX_EVENT_REGISTER,
 )
-from homeassistant.components.knx.const import KNX_ADDRESS
 
 _LOGGER = logging.getLogger(DOMAIN)
 

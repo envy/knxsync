@@ -23,14 +23,14 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.components.knx.schema import ClimateSchema
-from homeassistant.components.knx import (
+from homeassistant.components.knx.const import (
     DOMAIN as DOMAIN_KNX,
     SERVICE_KNX_SEND,
     SERVICE_KNX_ATTR_PAYLOAD,
     SERVICE_KNX_ATTR_RESPONSE,
     SERVICE_KNX_ATTR_TYPE,
+    KNX_ADDRESS,
 )
-from homeassistant.components.knx.const import KNX_ADDRESS
 from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
 from xknx.dpt.dpt_hvac_mode import DPTHVACContrMode, HVACControllerMode
 from xknx.dpt.payload import DPTArray

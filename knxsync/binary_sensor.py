@@ -4,18 +4,18 @@ from .const import (
     DOMAIN,
 )
 from .base import SyncedEntity
-from .helpers import parse_group_addresses
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_ENTITY_ID
-from homeassistant.components.knx import (
+from homeassistant.components.knx.const import (
     DOMAIN as DOMAIN_KNX,
     SERVICE_KNX_ATTR_REMOVE,
     SERVICE_KNX_ATTR_TYPE,
     SERVICE_KNX_EXPOSURE_REGISTER,
+    CONF_STATE_ADDRESS,
+    KNX_ADDRESS,
 )
-from homeassistant.components.knx.const import CONF_STATE_ADDRESS, KNX_ADDRESS
 from homeassistant.components.knx.schema import ExposeSchema
 
 _LOGGER = logging.getLogger(DOMAIN)
