@@ -5,8 +5,10 @@
     "config_flow": true,
     "dependencies": ["knx"],
     "documentation": "https://github.com/envy/knxsync",
+    "integration_type": "helper",
     "iot_class": "calculated",
     "loggers": ["knxsync"],
     "requirements": ["xknx"],
-    "version": "0.0.1"
+    "single_config_entry": true,
+    "version": "0.0.2"
 }

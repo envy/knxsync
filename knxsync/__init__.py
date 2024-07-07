@@ -4,7 +4,9 @@ A component which syncs a HA device to KNX
 For more details about this component, please refer to the documentation at
 https://github.com/envy/knxsync
 """
+
 import logging
+from dataclasses import dataclass
 
 from .binary_sensor import SyncedBinarySensor
 from .const import DOMAIN, CONF_KNXSYNC_SYNCED_ENTITIES
@@ -21,22 +23,6 @@ from homeassistant.components.climate import DOMAIN as DOMAIN_CLIMATE
 VERSION = "0.1.0"
 
 _LOGGER = logging.getLogger(DOMAIN)
-
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = KNXSyncer(hass, entry)
-    await hass.data[DOMAIN][entry.entry_id].async_setup_events(entry)
-    return True
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hass.data[DOMAIN].pop(entry.entry_id)
-    return True
-
-
-async def async_update_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await hass.config_entries.async_reload(entry.entry_id)
 
 
 class KNXSyncer:
@@ -91,3 +77,27 @@ class KNXSyncer:
         _LOGGER.debug("Shutting down...")
         for syncer in self.synced_entities.values():
             syncer.shutdown(self.config_entry)
+
+
+@dataclass
+class KnxSyncData:
+    syncer: KNXSyncer
+
+
+type KnxSyncConfigEntry = ConfigEntry[KnxSyncData]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: KnxSyncConfigEntry) -> bool:
+
+    entry.runtime_data = KnxSyncData(KNXSyncer(hass, entry))
+
+    await entry.runtime_data.syncer.async_setup_events(entry)
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    return True
+
+
+async def async_update_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
