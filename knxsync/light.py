@@ -137,15 +137,17 @@ class SyncedLight(SyncedEntity):
         if "new_state" not in data.keys():
             return
         self.state = data["new_state"]
+        if self.state is None:
+            return
 
         if self.state_address:
             await self._send_onoff()
         if (
             self.brightness_state_address
-            and ATTR_BRIGHTNESS in self.state.attributes.keys()
+            and self.state.attributes[ATTR_BRIGHTNESS] is not None
         ):
             await self._send_brightness()
-        if self.color_state_address and ATTR_RGB_COLOR in self.state.attributes.keys():
+        if self.color_state_address and self.state.attributes[ATTR_RGB_COLOR] is not None:
             await self._send_color()
 
     async def async_setup_events(self) -> None:
@@ -200,6 +202,9 @@ class SyncedLight(SyncedEntity):
         if self.state == None:
             return
         brightness = self.state.attributes[ATTR_BRIGHTNESS]
+        if brightness is None:
+            return
+        # brightness is an int between 0 and 255, no conversion needed
         payload = [brightness]  # XKNX requires a list for 1 byte payload
         _LOGGER.debug(
             f"Sending {self.synced_entity_id} brightness -> {self.brightness_state_address}"
@@ -219,6 +224,9 @@ class SyncedLight(SyncedEntity):
         if self.state == None:
             return
         rgb = self.state.attributes[ATTR_RGB_COLOR]
+        if rgb is None:
+            return
+        # rgb is a tuple, so convert to a list
         payload = list(rgb)
         _LOGGER.debug(
             f"Sending {self.synced_entity_id} color -> {self.color_state_address}"

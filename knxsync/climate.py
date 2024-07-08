@@ -157,12 +157,12 @@ class SyncedClimate(SyncedEntity):
 
         if (
             self.temperature_address
-            and ATTR_CURRENT_TEMPERATURE in self.state.attributes.keys()
+            and self.state.attributes[ATTR_CURRENT_TEMPERATURE] is not None
         ):
             await self._send_current_temperature()
         if (
             self.target_temperature_state_address
-            and ATTR_TEMPERATURE in self.state.attributes.keys()
+            and self.state.attributes[ATTR_TEMPERATURE] is not None
         ):
             await self._send_setpoint_temperature()
         if self.controller_mode_state_address:
@@ -192,6 +192,8 @@ class SyncedClimate(SyncedEntity):
         if self.state == None:
             return
         setpoint_temperature = self.state.attributes[ATTR_TEMPERATURE]
+        if setpoint_temperature is None:
+            return
         payload = setpoint_temperature
         _LOGGER.debug(
             f"Sending {self.synced_entity_id} setpoint temperarute -> {self.target_temperature_state_address}"
@@ -208,10 +210,12 @@ class SyncedClimate(SyncedEntity):
                 },
             )
 
-    async def _send_controller_mode(self, response: bool = False):
+    async def _send_controller_mode(self, response: bool = False) -> None:
         if self.state == None:
             return
         op_mode = self.state.state
+        if op_mode is None:
+            return
         payload = list(
             DPTHVACContrMode.to_knx(ha_to_xknx_controller_mode(op_mode)).value
         )
