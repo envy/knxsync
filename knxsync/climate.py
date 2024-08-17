@@ -31,8 +31,8 @@ from homeassistant.components.knx.const import (
     SERVICE_KNX_ATTR_TYPE,
     KNX_ADDRESS,
 )
-from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
-from xknx.dpt.dpt_hvac_mode import DPTHVACContrMode, HVACControllerMode
+from xknx.dpt.dpt_9 import DPT2ByteFloat
+from xknx.dpt.dpt_20 import DPTHVACContrMode, HVACControllerMode
 from xknx.dpt.payload import DPTArray
 
 _LOGGER = logging.getLogger(DOMAIN)
@@ -40,7 +40,7 @@ _LOGGER = logging.getLogger(DOMAIN)
 HA_HVAC_CONTROLLER_MODE_MAP: Final = {
     HVACMode.AUTO: HVACControllerMode.AUTO,
     HVACMode.COOL: HVACControllerMode.COOL,
-    HVACMode.DRY: HVACControllerMode.DRY,
+    HVACMode.DRY: HVACControllerMode.DEHUMIDIFICATION,
     HVACMode.FAN_ONLY: HVACControllerMode.FAN_ONLY,
     HVACMode.HEAT: HVACControllerMode.HEAT,
     # HVACMode.HEAT_COOL: HVACControllerMode.AUTO,

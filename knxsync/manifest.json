@@ -5,7 +5,7 @@
     "config_flow": true,
     "dependencies": ["knx"],
     "documentation": "https://github.com/envy/knxsync",
-    "integration_type": "helper",
+    "integration_type": "service",
     "iot_class": "calculated",
     "loggers": ["knxsync"],
     "requirements": ["xknx"],
