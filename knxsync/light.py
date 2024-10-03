@@ -16,6 +16,8 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     SERVICE_TURN_OFF,
     STATE_ON,
+    STATE_UNKNOWN,
+    STATE_UNAVILABLE,
 )
 from homeassistant.components.light import (
     DOMAIN as DOMAIN_LIGHT,
@@ -138,6 +140,11 @@ class SyncedLight(SyncedEntity):
             return
         self.state = data["new_state"]
         if self.state is None:
+            return
+
+        if self.state.state == STATE_UNKNOWN or self.state.state == STATE_UNAVAILABLE:
+            _LOGGER.debug(f"{self.synced_entity_id} is unknown/unavailable")
+            await self._send_onoff()
             return
 
         if self.state_address:
