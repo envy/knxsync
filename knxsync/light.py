@@ -17,7 +17,7 @@ from homeassistant.const import (
     SERVICE_TURN_OFF,
     STATE_ON,
     STATE_UNKNOWN,
-    STATE_UNAVILABLE,
+    STATE_UNAVAILABLE,
 )
 from homeassistant.components.light import (
     DOMAIN as DOMAIN_LIGHT,
